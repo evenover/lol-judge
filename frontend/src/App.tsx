@@ -7,10 +7,16 @@ import PictureFrameDual from './components/PictureFrameDual.js';
 import StartMenu from './components/StartMenu.js';
 
 function App() {
+
   useEffect(() => {
     if (!Socket.connected) {
       Socket.connect();
     }
+
+      const currentPath = window.location.pathname;
+      if (currentPath === '/view'){
+        setIsView(true);
+      }
 
     const handleDual = (data: any) => {
       setIsDual(data.dual);
@@ -42,6 +48,14 @@ function App() {
   const [isView, setIsView] = useState(false);
 
   const pictures = Array(Contestants).fill('/profileplaceholder.jpg'); // Use the placeholder image for all pictures
+
+   // Check if the current path is "/view" and set isView to true
+   useEffect(() => {
+    if (location.pathname === "/view") {
+      setIsStarted(false);
+      setIsView(true);
+    }
+  }, [location.pathname]);
 
   const handleContestantsChange = (newContestants: number) => {
     setContestants(newContestants);

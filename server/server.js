@@ -47,12 +47,25 @@ function getServerIp() {
 
 // Use the dynamic IP address in the file URL
 app.post("/uploadpicture", upload.single("file"), (req, res) => {
+    console.log("File upload request received");
+
     if (!req.file) {
+        console.error("No file uploaded");
         return res.status(400).json({ error: "No file uploaded" });
     }
 
+    console.log("Uploaded file details:", req.file);
+
     const serverIp = getServerIp(); // Get the server's IP address
+    const filePath = path.join(__dirname, "uploads", req.file.filename);
+
+    if (!fs.existsSync(filePath)) {
+        console.error("File not found after upload:", filePath);
+        return res.status(404).json({ error: "File not found after upload" });
+    }
+
     const fileUrl = `http://${serverIp}:3000/uploads/${req.file.filename}`; // Use the IP address in the URL
+    console.log("File uploaded successfully. URL:", fileUrl);
     res.json({ url: fileUrl });
 });
 
@@ -72,11 +85,46 @@ app.get('/', (req, res) => {
   }
 });
 
+app.get('/view', (req, res) => {
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('index.html not found');
+  }
+});
+
 const port = 3000;
 
-const database = []
-database.dual = true;
-database.contestants = 8
+const databaseFilePath = path.join(__dirname, "database.json");
+
+// Function to load the database from the JSON file
+function loadDatabase() {
+    if (fs.existsSync(databaseFilePath)) {
+        try {
+            const data = fs.readFileSync(databaseFilePath, "utf8");
+            return JSON.parse(data);
+        } catch (err) {
+            console.error("Error reading database file:", err);
+        }
+    }
+    return []; // Return an empty array if the file doesn't exist or fails to load
+}
+
+// Function to save the database to the JSON file
+function saveDatabase() {
+    try {
+        fs.writeFileSync(databaseFilePath, JSON.stringify(database, null, 2), "utf8");
+        console.log("Database saved successfully.");
+    } catch (err) {
+        console.error("Error saving database file:", err);
+    }
+}
+
+// Load the database when the server starts
+const database = loadDatabase();
+database.dual = database.dual || true;
+database.contestants = database.contestants || 8;
 
 io.on("connection", (socket) => {
   console.log(`User connected ${socket.id}`)
@@ -93,6 +141,7 @@ io.on("connection", (socket) => {
       database.push({ index: data.index, isYellow: data.isYellow }); // Add new entry
     }
     console.log("Updated database:", database);
+    saveDatabase(); // Save the updated database
   })
   socket.on("yellowleft", (data) => {
     io.emit("receiveinfo", data);
@@ -104,6 +153,7 @@ io.on("connection", (socket) => {
       database.push({ index: data.index, isYellowLeft: data.isYellowLeft }); // Add new entry
     }
     console.log("Updated database:", database);
+    saveDatabase(); // Save the updated database
   })
   socket.on("yellowright", (data) => {
     io.emit("receiveinfo", data);
@@ -115,6 +165,7 @@ io.on("connection", (socket) => {
       database.push({ index: data.index, isYellowRight: data.isYellowRight }); // Add new entry
     }
     console.log("Updated database:", database);
+    saveDatabase(); // Save the updated database
   })
 
   socket.on("red", (data) => {
@@ -127,6 +178,7 @@ io.on("connection", (socket) => {
       database.push({ index: data.index, isRed: data.isRed }); // Add new entry
     }
     console.log("Updated database:", database);
+    saveDatabase(); // Save the updated database
   })
   socket.on("redleft", (data) => {
     io.emit("receiveinfo", data);
@@ -138,6 +190,7 @@ io.on("connection", (socket) => {
       database.push({ index: data.index, isRedLeft: data.isRedLeft }); // Add new entry
     }
     console.log("Updated database:", database);
+    saveDatabase(); // Save the updated database
   })
   socket.on("redright", (data) => {
     io.emit("receiveinfo", data);
@@ -149,6 +202,7 @@ io.on("connection", (socket) => {
       database.push({ index: data.index, isRedRight: data.isRedRight }); // Add new entry
     }
     console.log("Updated database:", database);
+    saveDatabase(); // Save the updated database
   })
 
   socket.on("getinfo", (data) => {
@@ -188,17 +242,22 @@ io.on("connection", (socket) => {
         }
     });
 
+    // Save an empty array to the JSON file
+    saveDatabase();
+
     io.emit("resetstats");
   });
 
   socket.on("dual", (data) => {
     database.dual = data.dual
     socket.broadcast.emit("dual", data)
+    saveDatabase(); // Save the updated database
   })
 
   socket.on("contestants", (data) => {
     database.contestants = data.contestants
     socket.broadcast.emit("contestants", data)
+    saveDatabase(); // Save the updated database
   })
 
   socket.on("updatepicture", (data) => {
@@ -212,6 +271,7 @@ io.on("connection", (socket) => {
         database.push({ index, picture }); // Add a new entry if it doesn't exist
     }
     io.emit("receiveinfo", { index, picture }); // Broadcast the updated picture
+    saveDatabase(); // Save the updated database
   });
 
   socket.on("updatepictureleft", (data) => {
@@ -224,6 +284,7 @@ io.on("connection", (socket) => {
         database.push({ index, pictureLeft: picture });
     }
     io.emit("receiveinfo", { index, pictureLeft: picture });
+    saveDatabase(); // Save the updated database
   });
 
   socket.on("updatepictureright", (data) => {
@@ -236,6 +297,7 @@ io.on("connection", (socket) => {
         database.push({ index, pictureRight: picture });
     }
     io.emit("receiveinfo", { index, pictureRight: picture });
+    saveDatabase(); // Save the updated database
   });
 
 }
