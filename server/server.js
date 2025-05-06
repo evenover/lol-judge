@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require("multer");
 const fs = require('fs')
 const path = require("path");
+const os = require("os"); // Add this line to import the os module
 const app = express();
 const http = require('http')
 const {Server} = require('socket.io')
@@ -12,7 +13,7 @@ const server = http.createServer(app)
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"],
   },
 
@@ -31,13 +32,27 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage }); // Use the custom storage configuration
 
+// Function to get the server's IP address
+function getServerIp() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === "IPv4" && !iface.internal) {
+                return iface.address; // Return the first non-internal IPv4 address
+            }
+        }
+    }
+    return "localhost"; // Fallback to localhost if no external IP is found
+}
+
+// Use the dynamic IP address in the file URL
 app.post("/uploadpicture", upload.single("file"), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Generate a URL for the uploaded file
-    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    const serverIp = getServerIp(); // Get the server's IP address
+    const fileUrl = `http://${serverIp}:3000/uploads/${req.file.filename}`; // Use the IP address in the URL
     res.json({ url: fileUrl });
 });
 
