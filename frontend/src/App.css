@@ -172,7 +172,7 @@ body {
 
 .picture-frame-dual-inner {
   height: 400px;
-  gap: 10px;
+  gap: 25px;
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -213,13 +213,18 @@ body {
 }
 
 .picture-frame-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   justify-content: center;
   align-items: center;
   margin-top: 5px;
   margin-bottom: 20px;
   gap: 5px;
 
+}
+
+.picture-frame-buttons > .row-2 {
+  grid-column: span 2;
 }
 
 .picture-frame-inner {
@@ -260,6 +265,64 @@ body {
   position: absolute;
   margin-top: 5px;
   margin-left: 40px;
+  width: 25px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.black-card {
+  background-color: rgb(0, 0, 0);
+  border:#1b1e24 2px solid;
+  position: absolute;
+  margin-top: 5px;
+  margin-left: 70px;
+  width: 25px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.white-card {
+  background-color: rgb(255, 255, 255);
+  border:#1b1e24 2px solid;
+  position: absolute;
+  margin-top: 5px;
+  margin-left: 100px;
+  width: 25px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.orange1-card {
+  background-color: rgb(255, 153, 0);
+  color: black;
+  border:#1b1e24 2px solid;
+  position: absolute;
+  margin-top: 5px;
+  margin-left: 130px;
+  width: 25px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.orange2-card {
+  background-color: rgb(255, 153, 0);
+  color: black;
+  border:#1b1e24 2px solid;
+  position: absolute;
+  margin-top: 5px;
+  margin-left: 160px;
   width: 25px;
   height: 50px;
   display: flex;

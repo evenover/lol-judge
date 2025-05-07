@@ -10,6 +10,10 @@ type PictureFrameProps = {
 export default function PictureFrame({ picture, view, index }: PictureFrameProps) {
     const [isYellow, setIsYellow] = useState(false);
     const [isRed, setIsRed] = useState(false);
+    const [isBlack, setisBlack] = useState(false);
+    const [isWhite, setisWhite] = useState(false);
+    const [isOrange1, setisOrange1] = useState(false);
+    const [isOrange2, setisOrange2] = useState(false);
     const [currentPicture, setCurrentPicture] = useState(picture);
 
     const handleisYellow = () => {
@@ -21,6 +25,24 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
         setIsRed(!isRed);
         Socket.emit("red", { index, isRed: !isRed });
     };
+
+    const handleisBlack = () => {
+        setisBlack(!isBlack)
+        Socket.emit("black", {index, isBlack: isBlack});
+    }
+
+    const handleisWhite = () => {
+        setisWhite(!isWhite)
+        Socket.emit("white", {index, isWhite: !isWhite})
+    }
+    const handleisOrange1 = () => {
+        setisOrange1(!isOrange1)
+        Socket.emit("orange1", {index, isOrange1: !isOrange1})
+    }
+    const handleisOrange2 = () => {
+        setisOrange2(!isOrange2)
+        Socket.emit("orange2", {index, isOrange2: !isOrange2})
+    }
 
     const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
@@ -94,6 +116,19 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 if (data.isRed !== undefined) {
                     setIsRed(data.isRed);
                 }
+                if (data.isBlack !== undefined) {
+                    setIsRed(data.isBlack);
+                }
+                if (data.isWhite !== undefined) {
+                    setIsRed(data.isWhite);
+                }
+                if (data.isOrange1 !== undefined) {
+                    setIsRed(data.isOrange1);
+                }
+                if (data.isOrange2 !== undefined) {
+                    setIsRed(data.isOrange2);
+                }
+
                 if (data.picture) {
                     setCurrentPicture(data.picture);
                 }
@@ -103,6 +138,11 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
         const handleResetStats = () => {
             setIsYellow(false);
             setIsRed(false);
+            setisBlack(false);
+            setisWhite(false);
+            setisOrange1(false);
+            setisOrange2(false);
+
             setCurrentPicture(picture); // Reset to the original picture
         };
 
@@ -124,6 +164,10 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
             
                 {isYellow ? <div className="yellow-card"></div> : null}
                 {isRed ? <div className="red-card"></div> : null}
+                {isBlack ? <div className="black-card"></div> : null}
+                {isWhite ? <div className="white-card"></div> : null}
+                {isOrange1 ? <div className="oarange1-card">1</div> : null}
+                {isOrange2 ? <div className="orange2-card">2</div> : null}
                 <img
                     src={currentPicture}
                     alt="Placeholder"
@@ -139,6 +183,11 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
             
                 {isYellow ? <div className="yellow-card"></div> : null}
                 {isRed ? <div className="red-card"></div> : null}
+                {isBlack ? <div className="black-card"></div> : null}
+                {isWhite ? <div className="white-card"></div> : null}
+                {isOrange1 ? <div className="oarange1-card">1</div> : null}
+                {isOrange2 ? <div className="orange2-card">2</div> : null}
+                
                 <img
                     src={currentPicture}
                     alt="Placeholder"
@@ -158,6 +207,30 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                         onClick={handleisRed}
                     >
                         {isRed ? "Red" : "Red"}
+                    </button>
+                    <button
+                        className={`black-button ${isBlack ? "active" : ""}`}
+                        onClick={handleisBlack}
+                    >
+                        {isBlack ? "Black" : "Black"}
+                    </button>
+                    <button
+                        className={`white-button ${isWhite ? "active" : ""}`}
+                        onClick={handleisWhite}
+                    >
+                        {isWhite ? "White" : "White"}
+                    </button>
+                    <button
+                        className={`orange1-button ${isOrange1 ? "active" : ""}`}
+                        onClick={handleisOrange1}
+                    >
+                        {isOrange1 ? "Orange 1" : "Orange 1"}
+                    </button>
+                    <button
+                        className={`orange2-button ${isOrange2 ? "active" : ""}`}
+                        onClick={handleisOrange2}
+                    >
+                        {isOrange2 ? "Orange 2" : "Orange 2"}
                     </button>
                 </div>
             )}
