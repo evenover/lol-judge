@@ -28,7 +28,7 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
 
     const handleisBlack = () => {
         setisBlack(!isBlack)
-        Socket.emit("black", {index, isBlack: isBlack});
+        Socket.emit("black", {index, isBlack: !isBlack});
     }
 
     const handleisWhite = () => {
@@ -117,16 +117,16 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                     setIsRed(data.isRed);
                 }
                 if (data.isBlack !== undefined) {
-                    setIsRed(data.isBlack);
+                    setisBlack(data.isBlack);
                 }
                 if (data.isWhite !== undefined) {
-                    setIsRed(data.isWhite);
+                    setisWhite(data.isWhite);
                 }
                 if (data.isOrange1 !== undefined) {
-                    setIsRed(data.isOrange1);
+                    setisOrange1(data.isOrange1);
                 }
                 if (data.isOrange2 !== undefined) {
-                    setIsRed(data.isOrange2);
+                    setisOrange2(data.isOrange2);
                 }
 
                 if (data.picture) {
@@ -161,13 +161,14 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                {view? <div
                     className="picture-frame-inner"
                 >
-            
+                <div className="cards">
                 {isYellow ? <div className="yellow-card"></div> : null}
                 {isRed ? <div className="red-card"></div> : null}
                 {isBlack ? <div className="black-card"></div> : null}
                 {isWhite ? <div className="white-card"></div> : null}
-                {isOrange1 ? <div className="oarange1-card">1</div> : null}
+                {isOrange1 ? <div className="orange1-card">1</div> : null}
                 {isOrange2 ? <div className="orange2-card">2</div> : null}
+                </div>
                 <img
                     src={currentPicture}
                     alt="Placeholder"
@@ -180,14 +181,14 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                 >
-            
+                <div className="cards">
                 {isYellow ? <div className="yellow-card"></div> : null}
                 {isRed ? <div className="red-card"></div> : null}
                 {isBlack ? <div className="black-card"></div> : null}
                 {isWhite ? <div className="white-card"></div> : null}
-                {isOrange1 ? <div className="oarange1-card">1</div> : null}
+                {isOrange1 ? <div className="orange1-card">1</div> : null}
                 {isOrange2 ? <div className="orange2-card">2</div> : null}
-                
+                </div>
                 <img
                     src={currentPicture}
                     alt="Placeholder"

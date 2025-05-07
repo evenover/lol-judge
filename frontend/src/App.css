@@ -122,212 +122,152 @@ body {
 }
 
 .Canvas {
-  margin-top: 30px;
-  max-height: calc(100vh - 60px);
-  grid-auto-rows: 1fr;;
-  width: 100%;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   background-color: var(--primary-color);
+  height: calc(100vh - 60px); /* Subtract the header height from the viewport height */
+  width: 100vw; /* Full viewport width */
+  position: fixed;
+  top: 60px; /* Start below the header */
+  left: 0; /* Align to the left of the viewport */
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, 1fr); /* 5 equal columns */
+  gap: 10px; /* Space between grid items */
+  overflow: hidden; /* Prevent content overflow */
+  box-sizing: border-box; /* Include padding and border in the size */
 }
 
-.Canvas-dual {
-  margin-top: 60px;
-  background-color: var(--primary-color);
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  max-height: calc(100vh - 60px);
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-}
 
-.picture-frame {
+
+.picture-frame,
+.picture-frame-dual-right,
+.picture-frame-dual-left {
   background-color: var(--primary-color);
   border: 2px solid black;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
-
-.picture-frame img {
-  object-fit: contain;
-}
-
-.picture-frame-dual{
-  border: 2px solid black;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.picture-frame-dual-inner {
-  height: 400px;
-  gap: 25px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  flex-direction: row;
-}
-.picture-frame-dual-inner img {
-  height: 250px;
-  object-fit: contain;
-  overflow-clip-margin: content-box;
-  overflow: clip;
-}
-.picture-frame-dual {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-}
-
-.picture-frame-dual-left{
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.image-left{
+  box-sizing: border-box;
+  height: 100%;
   width: 100%;
-}
-
-.picture-frame-dual-right{
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.image-right{
-  width: 100%;
+  overflow: hidden;
   
 }
 
-.picture-frame-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.picture-frame-inner,
+.picture-frame-dual-left-inner,
+.picture-frame-dual-right-inner {
+  display: flex;
   justify-content: center;
-  align-items: center;
-  margin-top: 5px;
-  margin-bottom: 20px;
-  gap: 5px;
-
-}
-
-.picture-frame-buttons > .row-2 {
-  grid-column: span 2;
-}
-
-.picture-frame-inner {
-  padding: 10px;
   text-align: center;
   position: relative;
   overflow: hidden;
+  width: 100%;
 }
 
-.picture-frame-inner img {
+.picture-frame-inner img, 
+.picture-frame-dual-right-inner img,
+.picture-frame-dual-left-inner img{
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+.Canvas-dual {
+  height: 100%;
+  background-color: var(--primary-color);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: calc(100vh - 60px);
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  row-gap: 50px;
+  overflow-y: auto;
+}
+
+.picture-frame-dual {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.picture-frame-dual-inner{
+    border: 2px solid black;
+    display: flex;
+    flex-direction: row;
+    justify-items: center;
+    height: 100%;
+    width: 90%;
+}
+
+.picture-frame-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 equal columns */
+  grid-template-rows: repeat(2, auto); /* 2 rows */
+  grid-auto-flow: row; /* Ensure items flow row by row */
+  justify-content: center;
+  align-items: center;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  gap: 5px;
+}
+
+.picture-frame-buttons button:nth-child(1),
+.picture-frame-buttons button:nth-child(2) {
+  grid-column: span 2; /* Make the first two buttons span 2 columns each */
+}
+
+.picture-frame-buttons button {
+  padding: 5px;
+}
+
+
 #greyscale {
   filter: grayscale(100%);
 }
 
-.yellow-card {
-  background-color: yellow;
-  border:#1b1e24 2px solid;
+.cards {
+  padding: 5px;
   position: absolute;
-  margin-top: 5px;
-  margin-left: 10px;
-  width: 25px;
+  width: 100%;
   height: 50px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
+  justify-items: center;
   z-index: 1000;
+}
+
+.yellow-card,.red-card,.black-card,
+.white-card,.orange1-card,.orange2-card{
+  color: black;
+  border:#1b1e24 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 50px;
+  z-index: 1000;
+}
+
+.yellow-card {
+  background-color: yellow;
 }
 
 .red-card {
   background-color: red;
-  border:#1b1e24 2px solid;
-  position: absolute;
-  margin-top: 5px;
-  margin-left: 40px;
-  width: 25px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
 }
 .black-card {
   background-color: rgb(0, 0, 0);
-  border:#1b1e24 2px solid;
-  position: absolute;
-  margin-top: 5px;
-  margin-left: 70px;
-  width: 25px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
 }
 .white-card {
   background-color: rgb(255, 255, 255);
-  border:#1b1e24 2px solid;
-  position: absolute;
-  margin-top: 5px;
-  margin-left: 100px;
-  width: 25px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
 }
-.orange1-card {
+.orange1-card,.orange2-card {
   background-color: rgb(255, 153, 0);
-  color: black;
-  border:#1b1e24 2px solid;
-  position: absolute;
-  margin-top: 5px;
-  margin-left: 130px;
-  width: 25px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-.orange2-card {
-  background-color: rgb(255, 153, 0);
-  color: black;
-  border:#1b1e24 2px solid;
-  position: absolute;
-  margin-top: 5px;
-  margin-left: 160px;
-  width: 25px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
 }

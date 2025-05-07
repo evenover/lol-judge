@@ -274,12 +274,15 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
             <div className="picture-frame-dual-inner">
                 {view ? 
                 <div className="picture-frame-dual-left">
+                    <div className="picture-frame-dual-left-inner">
+                    <div className="cards">
                     {isYellowLeft ? <div className="yellow-card"></div> : null}
                     {isRedLeft ? <div className="red-card"></div> : null}
                     {isBlackLeft ? <div className="black-card"></div> : null}
                     {isWhiteLeft ? <div className="white-card"></div> : null}
                     {isOrange1Left ? <div className="orange1-card">1</div> : null}
                     {isOrange2Left ? <div className="orange2-card">2</div> : null}
+                    </div>
                     <img
                         className="image-left"
                         src={currentPictureLeft}
@@ -287,24 +290,29 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         id={isRedLeft ? "greyscale" : "color"}
                     />
                 </div>
+                </div>
                 :
                 <div
                     className="picture-frame-dual-left"
                     onDrop={handleDropLeft}
                     onDragOver={handleDragOver}
                 >
+                    <div className="picture-frame-dual-left-inner">
+                    <div className="cards">
                     {isYellowLeft ? <div className="yellow-card"></div> : null}
                     {isRedLeft ? <div className="red-card"></div> : null}
                     {isBlackLeft ? <div className="black-card"></div> : null}
                     {isWhiteLeft ? <div className="white-card"></div> : null}
                     {isOrange1Left ? <div className="orange1-card">1</div> : null}
                     {isOrange2Left ? <div className="orange2-card">2</div> : null}
+                    </div>
                     <img
                         className="image-left"
                         src={currentPictureLeft}
                         alt="Placeholder"
                         id={isRedLeft ? "greyscale" : "color"}
                     />
+                        </div>
                         <div className="picture-frame-buttons">
                             <button
                                 className={`yellow-button ${isYellowLeft ? "active" : ""}`}
@@ -346,12 +354,15 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                 </div>}
                 {view ?
                 <div className="picture-frame-dual-right">
+                    <div className="picture-frame-dual-right-inner">
+                <div className="cards">
                 {isYellowRight ? <div className="yellow-card"></div> : null}
                 {isRedRight ? <div className="red-card"></div> : null}
                 {isBlackRight ? <div className="black-card"></div> : null}
                 {isWhiteRight ? <div className="white-card"></div> : null}
                 {isOrange1Right ? <div className="orange1-card">1</div> : null}
                 {isOrange2Right ? <div className="orange2-card">2</div> : null}
+                </div>
                 <img
                     className="image-right"
                     src={currentPictureRight}
@@ -359,24 +370,29 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                     id={isRedRight ? "greyscale" : "color"}
                 />
             </div>
+            </div>
                 :
                 <div
                     className="picture-frame-dual-right"
                     onDrop={handleDropRight}
                     onDragOver={handleDragOver}
                 >
+                    <div className="picture-frame-dual-right-inner">
+                    <div className="cards">
                     {isYellowRight ? <div className="yellow-card"></div> : null}
                     {isRedRight ? <div className="red-card"></div> : null}
                     {isBlackRight ? <div className="black-card"></div> : null}
                     {isWhiteRight ? <div className="white-card"></div> : null}
                     {isOrange1Right ? <div className="orange1-card">1</div> : null}
                     {isOrange2Right ? <div className="orange2-card">2</div> : null}
+                    </div>
                     <img
                         className="image-right"
                         src={currentPictureRight}
                         alt="Placeholder"
                         id={isRedRight ? "greyscale" : "color"}
                     />
+                    </div>
                         <div className="picture-frame-buttons">
                             <button
                                 className={`yellow-button ${isYellowRight ? "active" : ""}`}
@@ -415,6 +431,7 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                                 {isOrange2Right ? "Orange 2" : "Orange 2"}
                             </button>
                         </div>
+                        
                 </div>}
             </div>
         </div>
