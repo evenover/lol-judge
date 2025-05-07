@@ -15,6 +15,7 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
     const [isOrange1, setisOrange1] = useState(false);
     const [isOrange2, setisOrange2] = useState(false);
     const [currentPicture, setCurrentPicture] = useState(picture);
+    const [label, setLabel] = useState("")
 
     const handleisYellow = () => {
         setIsYellow(!isYellow);
@@ -128,6 +129,9 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 if (data.isOrange2 !== undefined) {
                     setisOrange2(data.isOrange2);
                 }
+                if (data.Label !== undefined) {
+                    setLabel(data.Label);
+                }
 
                 if (data.picture) {
                     setCurrentPicture(data.picture);
@@ -142,7 +146,7 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
             setisWhite(false);
             setisOrange1(false);
             setisOrange2(false);
-
+            setLabel("")
             setCurrentPicture(picture); // Reset to the original picture
         };
 
@@ -169,6 +173,19 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 {isOrange1 ? <div className="orange1-card">1</div> : null}
                 {isOrange2 ? <div className="orange2-card">2</div> : null}
                 </div>
+                <input
+                        type="text"
+                        value={label} // Bind the input value to the labelLeft state
+                        readOnly={view} // Set read-only based on the view prop
+                        className="picture-frame-label"
+                        onChange={(e) => setLabel(e.target.value)} // Update labelLeft state on input change
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                Socket.emit("updateLabel", { index, Label: label }); // Emit the labelLeft value
+                                console.log("Label sent:", label); // Optional: Log the value
+                            }
+                        }}
+                    />
                 <img
                     src={currentPicture}
                     alt="Placeholder"
@@ -189,6 +206,19 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 {isOrange1 ? <div className="orange1-card">1</div> : null}
                 {isOrange2 ? <div className="orange2-card">2</div> : null}
                 </div>
+                <input
+                        type="text"
+                        value={label} // Bind the input value to the labelLeft state
+                        readOnly={view} // Set read-only based on the view prop
+                        className="picture-frame-label"
+                        onChange={(e) => setLabel(e.target.value)} // Update labelLeft state on input change
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                Socket.emit("updateLabel", { index, Label: label }); // Emit the labelLeft value
+                                console.log("Label sent:", label); // Optional: Log the value
+                            }
+                        }}
+                    />
                 <img
                     src={currentPicture}
                     alt="Placeholder"

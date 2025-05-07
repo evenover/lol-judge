@@ -390,7 +390,7 @@ io.on("connection", (socket) => {
       console.log(data);
       const existingEntry = database.find((entry) => entry.index === data.index);
       if (existingEntry) {
-        existingEntry.isWhite = data.isOrange2;
+        existingEntry.isOrange2 = data.isOrange2;
       } else {
         database.push({ index: data.index, isOrange2: data.isOrange2 });
       }
@@ -432,6 +432,56 @@ io.on("connection", (socket) => {
       saveDatabase();
     } catch (error) {
       console.error("Error in orange2right event handler:", error);
+    }
+  });
+  socket.on("updateLabel", (data) => {
+    try {
+      io.emit("receiveinfo", data);
+      console.log(data);
+      const existingEntry = database.find((entry) => entry.index === data.index);
+      if (existingEntry) {
+        existingEntry.Label = data.Label;
+      } else {
+        database.push({ index: data.index, Label: data.Label });
+      }
+      console.log("Updated database:", database);
+      saveDatabase();
+    } catch (error) {
+      console.error("Error in label event handler:", error);
+    }
+  });
+
+  socket.on("updateLabelLeft", (data) => {
+    try {
+      io.emit("receiveinfo", data);
+      console.log(data);
+      const existingEntry = database.find((entry) => entry.index === data.index);
+      if (existingEntry) {
+        existingEntry.LabelLeft = data.LabelLeft;
+      } else {
+        database.push({ index: data.index, LabelLeft: data.LabelLeft });
+      }
+      console.log("Updated database:", database);
+      saveDatabase();
+    } catch (error) {
+      console.error("Error in labelleft event handler:", error);
+    }
+  });
+
+  socket.on("updateLabelRight", (data) => {
+    try {
+      io.emit("receiveinfo", data);
+      console.log(data);
+      const existingEntry = database.find((entry) => entry.index === data.index);
+      if (existingEntry) {
+        existingEntry.LabelRight = data.LabelRight;
+      } else {
+        database.push({ index: data.index, LabelRight: data.LabelRight });
+      }
+      console.log("Updated database:", database);
+      saveDatabase();
+    } catch (error) {
+      console.error("Error in labelright event handler:", error);
     }
   });
 

@@ -276,3 +276,20 @@ body {
 .orange1-card,.orange2-card {
   background-color: rgb(255, 153, 0);
 }
+
+.picture-frame-label {
+  background-color: #00000077;
+  color: white;
+  border: 0;
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  z-index: 1000;
+  text-align: center;
+  font-weight: bold;
+  text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+  overflow: hidden; /* Hide overflowing text */
+  white-space: nowrap; /* Prevent text from wrapping */
+  line-height: 1.2;
+  font-size: clamp(12px, 2vw, 20px);
+}

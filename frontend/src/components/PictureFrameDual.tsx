@@ -23,6 +23,8 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
     const [isOrange2Right, setIsOrange2Right] = useState(false);
     const [currentPictureLeft, setCurrentPictureLeft] = useState(pictureleft);
     const [currentPictureRight, setCurrentPictureRight] = useState(pictureright);
+    const [labelLeft, setLabelLeft] = useState("")
+    const [labelRight, setLabelRight] = useState("")
 
     const handleisYellowLeft = () => {
         setIsYellowLeft(!isYellowLeft);
@@ -239,6 +241,12 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                 if (data.pictureRight) {
                     setCurrentPictureRight(data.pictureRight);
                 }
+                if (data.LabelLeft) {
+                    setLabelLeft(data.LabelLeft);
+                }
+                if (data.LabelRight) {
+                    setLabelRight(data.LabelRight);
+                }
             }
         };
 
@@ -255,6 +263,8 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
             setIsOrange1Right(false);
             setIsOrange2Left(false);
             setIsOrange2Right(false);
+            setLabelLeft("")
+            setLabelRight("")
             setCurrentPictureLeft(pictureleft); // Reset to the original left picture
             setCurrentPictureRight(pictureright); // Reset to the original right picture
         };
@@ -289,6 +299,19 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         alt="Placeholder"
                         id={isRedLeft ? "greyscale" : "color"}
                     />
+                    <input
+                        type="text"
+                        value={labelLeft} // Bind the input value to the labelLeft state
+                        readOnly={view} // Set read-only based on the view prop
+                        className="picture-frame-label"
+                        onChange={(e) => setLabelLeft(e.target.value)} // Update labelLeft state on input change
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                Socket.emit("updateLabelLeft", { index, LabelLeft: labelLeft }); // Emit the labelLeft value
+                                console.log("Label Left sent:", labelLeft); // Optional: Log the value
+                            }
+                        }}
+                    />
                 </div>
                 </div>
                 :
@@ -311,6 +334,19 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         src={currentPictureLeft}
                         alt="Placeholder"
                         id={isRedLeft ? "greyscale" : "color"}
+                    />
+                    <input
+                        type="text"
+                        value={labelLeft} // Bind the input value to the labelLeft state
+                        readOnly={view} // Set read-only based on the view prop
+                        className="picture-frame-label"
+                        onChange={(e) => setLabelLeft(e.target.value)} // Update labelLeft state on input change
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                Socket.emit("updateLabelLeft", { index, LabelLeft: labelLeft }); // Emit the labelLeft value
+                                console.log("Label Left sent:", labelLeft); // Optional: Log the value
+                            }
+                        }}
                     />
                         </div>
                         <div className="picture-frame-buttons">
@@ -369,6 +405,19 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                     alt="Placeholder"
                     id={isRedRight ? "greyscale" : "color"}
                 />
+                <input
+                    type="text"
+                    value={labelRight} // Bind the input value to the labelRight state
+                    readOnly={view} // Set read-only based on the view prop
+                    className="picture-frame-label"
+                    onChange={(e) => setLabelRight(e.target.value)} // Update labelRight state on input change
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            Socket.emit("updateLabelRight", { index, LabelRight: labelRight }); // Emit the labelRight value
+                            console.log("Label Right sent:", labelRight); // Optional: Log the value
+                        }
+                    }}
+                />
             </div>
             </div>
                 :
@@ -392,6 +441,19 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         alt="Placeholder"
                         id={isRedRight ? "greyscale" : "color"}
                     />
+                    <input
+                    type="text"
+                    value={labelRight} // Bind the input value to the labelRight state
+                    readOnly={view} // Set read-only based on the view prop
+                    className="picture-frame-label"
+                    onChange={(e) => setLabelRight(e.target.value)} // Update labelRight state on input change
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            Socket.emit("updateLabelRight", { index, LabelRight: labelRight }); // Emit the labelRight value
+                            console.log("Label Right sent:", labelRight); // Optional: Log the value
+                        }
+                    }}
+                />
                     </div>
                         <div className="picture-frame-buttons">
                             <button
