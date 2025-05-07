@@ -292,4 +292,5 @@ body {
   white-space: nowrap; /* Prevent text from wrapping */
   line-height: 1.2;
   font-size: clamp(12px, 2vw, 20px);
+  text-transform: capitalize;
 }
