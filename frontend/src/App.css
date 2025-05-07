@@ -8,6 +8,7 @@ img
   --header-color: #1b1e24;
   --primary-color: #282c34;
   --secondary-color: #00A8E1;
+  --picture-card: #454c5a;
   --text-color: white;
   --font-family: 'Arial', sans-serif;
 }
@@ -141,7 +142,7 @@ body {
 .picture-frame-dual-right,
 .picture-frame-dual-left {
   border-radius: 10px;
-  background-color: var(--primary-color);
+  background-color: var(--picture-card);
   border: 2px solid black;
   display: flex;
   flex-direction: column;
@@ -243,6 +244,7 @@ body {
   justify-content: center;
   align-items: center;
   justify-items: center;
+  gap: 2px;
   z-index: 1000;
 }
 
