@@ -4,16 +4,16 @@ import Socket from "../socket.js";
 type PictureFrameProps = {
     picture: string;
     view: boolean;
+    laughtercount: boolean;
     index: any;
 };
 
-export default function PictureFrame({ picture, view, index }: PictureFrameProps) {
+export default function PictureFrame({ picture, view, index, laughtercount }: PictureFrameProps) {
     const [isYellow, setIsYellow] = useState(false);
     const [isRed, setIsRed] = useState(false);
     const [isBlack, setisBlack] = useState(false);
     const [isWhite, setisWhite] = useState(false);
-    const [isOrange1, setisOrange1] = useState(false);
-    const [isOrange2, setisOrange2] = useState(false);
+    const [laughCounter, setlaughCounter] = useState(0)
     const [currentPicture, setCurrentPicture] = useState(picture);
     const [label, setLabel] = useState("")
 
@@ -36,13 +36,9 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
         setisWhite(!isWhite)
         Socket.emit("white", {index, isWhite: !isWhite})
     }
-    const handleisOrange1 = () => {
-        setisOrange1(!isOrange1)
-        Socket.emit("orange1", {index, isOrange1: !isOrange1})
-    }
-    const handleisOrange2 = () => {
-        setisOrange2(!isOrange2)
-        Socket.emit("orange2", {index, isOrange2: !isOrange2})
+    const handlelaughCounter = () => {
+        setlaughCounter(laughCounter+1)
+        Socket.emit("laughcounter", {index, laughCounter: laughCounter+1})
     }
 
     const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
@@ -123,11 +119,8 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 if (data.isWhite !== undefined) {
                     setisWhite(data.isWhite);
                 }
-                if (data.isOrange1 !== undefined) {
-                    setisOrange1(data.isOrange1);
-                }
-                if (data.isOrange2 !== undefined) {
-                    setisOrange2(data.isOrange2);
+                if (data.laughCounter !== undefined) {
+                    setlaughCounter(data.laughCounter);
                 }
                 if (data.Label !== undefined) {
                     setLabel(data.Label);
@@ -144,9 +137,8 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
             setIsRed(false);
             setisBlack(false);
             setisWhite(false);
-            setisOrange1(false);
-            setisOrange2(false);
-            setLabel("")
+            setlaughCounter(0);
+            setLabel("");
             setCurrentPicture(picture); // Reset to the original picture
         };
 
@@ -170,8 +162,6 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 {isRed ? <div className="red-card"></div> : null}
                 {isBlack ? <div className="black-card"></div> : null}
                 {isWhite ? <div className="white-card"></div> : null}
-                {isOrange1 ? <div className="orange1-card">1</div> : null}
-                {isOrange2 ? <div className="orange2-card">2</div> : null}
                 </div>
                 <input
                         type="text"
@@ -186,6 +176,7 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                             }
                         }}
                     />
+                    {laughtercount ? <div className="picture-frame-laughcounter">{laughCounter}</div>: null}
                 <img
                     src={currentPicture}
                     alt="Placeholder"
@@ -203,8 +194,6 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                 {isRed ? <div className="red-card"></div> : null}
                 {isBlack ? <div className="black-card"></div> : null}
                 {isWhite ? <div className="white-card"></div> : null}
-                {isOrange1 ? <div className="orange1-card">1</div> : null}
-                {isOrange2 ? <div className="orange2-card">2</div> : null}
                 </div>
                 <input
                         type="text"
@@ -219,6 +208,7 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                             }
                         }}
                     />
+                    {laughtercount ? <div className="picture-frame-laughcounter">{laughCounter}</div>: null}
                 <img
                     src={currentPicture}
                     alt="Placeholder"
@@ -252,16 +242,10 @@ export default function PictureFrame({ picture, view, index }: PictureFrameProps
                         {isWhite ? "White" : "White"}
                     </button>
                     <button
-                        className={`orange1-button ${isOrange1 ? "active" : ""}`}
-                        onClick={handleisOrange1}
+                        className={`laugh-button}`}
+                        onClick={handlelaughCounter}
                     >
-                        {isOrange1 ? "Orange 1" : "Orange 1"}
-                    </button>
-                    <button
-                        className={`orange2-button ${isOrange2 ? "active" : ""}`}
-                        onClick={handleisOrange2}
-                    >
-                        {isOrange2 ? "Orange 2" : "Orange 2"}
+                        Laugh
                     </button>
                 </div>
             )}

@@ -25,6 +25,9 @@ function App() {
     const handleContestants = (data: any) => {
       setContestants(data.contestants);
     };
+    const handleLaughCounter = (data: any) => {
+      setisLaughCounter(data.isLaughCounter);
+    };
 
     const handleResetStats = () => {
       // Reset global state
@@ -33,11 +36,13 @@ function App() {
     Socket.on("dual", handleDual);
     Socket.on("contestants", handleContestants);
     Socket.on("resetstats", handleResetStats);
+    Socket.on("islaughcounter", handleLaughCounter)
 
     return () => {
       Socket.off("dual", handleDual);
       Socket.off("contestants", handleContestants);
       Socket.off("resetstats", handleResetStats);
+      Socket.off("islaughcounter", handleLaughCounter)
       Socket.disconnect();
     };
   }, []);
@@ -46,6 +51,7 @@ function App() {
   const [Contestants, setContestants] = useState(8);
   const [isStarted, setIsStarted] = useState(true);
   const [isView, setIsView] = useState(false);
+  const [isLaughCounter, setisLaughCounter] = useState(false)
 
   const pictures = Array(Contestants).fill('/profileplaceholder.jpg'); // Use the placeholder image for all pictures
 
@@ -88,6 +94,11 @@ function App() {
     Socket.emit("resetstats")
   }
 
+  const handleisLaughCounter = () => {
+    setisLaughCounter(!isLaughCounter)
+    Socket.emit("islaughcounter", {isLaughCounter: !isLaughCounter})
+  }
+
   return (
     <div className="App">
       {isStarted ? (
@@ -98,6 +109,7 @@ function App() {
             onDualClick={toggleDual}
             onContestantsChange={handleContestantsChange}
             onResetClick={handleresetstats}
+            onLaughCountClick={handleisLaughCounter}
             dual={isDual}
             view={isView}
           />
@@ -118,6 +130,7 @@ function App() {
                       pictureright={right}
                       view={isView}
                       index={index}
+                      laughtercount={isLaughCounter}
                     />
                   ))}
               </>
@@ -129,6 +142,7 @@ function App() {
                     picture={picture}
                     view={isView}
                     index={index}
+                    laughtercount={isLaughCounter}
                   />
                 ))}
               </>

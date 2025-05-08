@@ -2,10 +2,11 @@ type HeaderProps = {
     onDualClick: () => void;
     onContestantsChange?: (newContestants: number) => void;
     onResetClick: () => void;
+    onLaughCountClick: () => void;
     dual: boolean;
     view: boolean;
 }
-export default function Header({ view, dual, onDualClick, onContestantsChange, onResetClick }: HeaderProps) {
+export default function Header({ view, dual, onDualClick, onContestantsChange, onResetClick, onLaughCountClick }: HeaderProps) {
     
 
     return (
@@ -17,6 +18,7 @@ export default function Header({ view, dual, onDualClick, onContestantsChange, o
         <button onClick={() => onContestantsChange && onContestantsChange(11)}>11</button>
         </>
         }
+        <button onClick={onLaughCountClick}>LaughCount</button>
         <button onClick={onResetClick}>Reset</button>
         </div>
         }

@@ -5,26 +5,27 @@ type PictureFrameDualProps = {
     pictureleft: string;
     pictureright: string;
     view: boolean;
+    laughtercount: boolean;
     index: any;
 };
 
-export default function PictureFrameDual({ pictureleft, pictureright, view, index }: PictureFrameDualProps) {
+export default function PictureFrameDual({ pictureleft, pictureright, view, index, laughtercount }: PictureFrameDualProps) {
     const [isYellowLeft, setIsYellowLeft] = useState(false);
     const [isRedLeft, setIsRedLeft] = useState(false);
     const [isWhiteLeft, setIsWhiteLeft] = useState(false);
     const [isBlackLeft, setIsBlackLeft] = useState(false);
-    const [isOrange1Left, setIsOrange1Left] = useState(false);
-    const [isOrange2Left, setIsOrange2Left] = useState(false);
     const [isYellowRight, setIsYellowRight] = useState(false);
     const [isRedRight, setIsRedRight] = useState(false);
     const [isWhiteRight, setIsWhiteRight] = useState(false);
     const [isBlackRight, setIsBlackRight] = useState(false);
-    const [isOrange1Right, setIsOrange1Right] = useState(false);
-    const [isOrange2Right, setIsOrange2Right] = useState(false);
+    const [isOrange1, setIsOrange1] = useState(false);
+    const [isOrange2, setIsOrange2] = useState(false);
     const [currentPictureLeft, setCurrentPictureLeft] = useState(pictureleft);
     const [currentPictureRight, setCurrentPictureRight] = useState(pictureright);
     const [labelLeft, setLabelLeft] = useState("")
     const [labelRight, setLabelRight] = useState("")
+    const [laughCounterLeft, setlaughCounterLeft] = useState(0)
+    const [laughCounterRight, setlaughCounterRight] = useState(0)
 
     const handleisYellowLeft = () => {
         setIsYellowLeft(!isYellowLeft);
@@ -42,14 +43,6 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
     const handleisWhiteLeft = () => {
         setIsWhiteLeft(!isWhiteLeft);
         Socket.emit("whiteleft", { index, isWhiteLeft: !isWhiteLeft });
-    };
-    const handleisOrange1Left = () => {
-        setIsOrange1Left(!isOrange1Left);
-        Socket.emit("orange1left", { index, isOrange1Left: !isOrange1Left });
-    };
-    const handleisOrange2Left = () => {
-        setIsOrange2Left(!isOrange2Left);
-        Socket.emit("orange2left", { index, isOrange2Left: !isOrange2Left });
     };
 
     const handleisYellowRight = () => {
@@ -69,13 +62,21 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
         setIsWhiteRight(!isWhiteRight);
         Socket.emit("whiteright", { index, isWhiteRight: !isWhiteRight });
     };
-    const handleisOrange1Right = () => {
-        setIsOrange1Right(!isOrange1Right);
-        Socket.emit("orange1right", { index, isOrange1Right: !isOrange1Right });
+    const handleisOrange1 = () => {
+        setIsOrange1(!isOrange1);
+        Socket.emit("orange1", { index, isOrange1: !isOrange1 });
     };
-    const handleisOrange2Right = () => {
-        setIsOrange2Right(!isOrange2Right);
-        Socket.emit("orange2right", { index, isOrange2Right: !isOrange2Right });
+    const handleisOrange2 = () => {
+        setIsOrange2(!isOrange2);
+        Socket.emit("orange2", { index, isOrange2: !isOrange2 });
+    };
+    const handlelaughCounterLeft = () => {
+        setlaughCounterLeft(laughCounterLeft + 1);
+        Socket.emit("laughcounterleft", { index, laughCounterLeft: laughCounterLeft+1 });
+    };
+    const handlelaughCounterRight = () => {
+        setlaughCounterRight(laughCounterRight + 1);
+        Socket.emit("laughcounterright", { index, laughCounterRight: laughCounterRight+1 });
     };
 
     const handleDropLeft = async (event: React.DragEvent<HTMLDivElement>) => {
@@ -223,17 +224,11 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                 if (data.isWhiteRight !== undefined) {
                     setIsWhiteRight(data.isWhiteRight);
                 }
-                if (data.isOrange1Left !== undefined) {
-                    setIsOrange1Left(data.isOrange1Left);
+                if (data.isOrange1 !== undefined) {
+                    setIsOrange1(data.isOrange1);
                 }
-                if (data.isOrange1Right !== undefined) {
-                    setIsOrange1Right(data.isOrange1Right);
-                }
-                if (data.isOrange2Left !== undefined) {
-                    setIsOrange2Left(data.isOrange2Left);
-                }
-                if (data.isOrange2Right !== undefined) {
-                    setIsOrange2Right(data.isOrange2Right);
+                if (data.isOrange2 !== undefined) {
+                    setIsOrange2(data.isOrange2);
                 }
                 if (data.pictureLeft) {
                     setCurrentPictureLeft(data.pictureLeft);
@@ -247,7 +242,13 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                 if (data.LabelRight) {
                     setLabelRight(data.LabelRight);
                 }
-            }
+                if (data.laughCounterLeft !== undefined){
+                    setlaughCounterLeft(data.laughCounterLeft)
+                }
+                if (data.laughCounterRight !== undefined){
+                    setlaughCounterRight(data.laughCounterRight)
+                }
+                }
         };
 
         const handleResetStats = () => {
@@ -259,12 +260,12 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
             setIsBlackRight(false);
             setIsWhiteLeft(false);
             setIsWhiteRight(false);
-            setIsOrange1Left(false);
-            setIsOrange1Right(false);
-            setIsOrange2Left(false);
-            setIsOrange2Right(false);
+            setIsOrange1(false);
+            setIsOrange2(false);
             setLabelLeft("")
             setLabelRight("")
+            setlaughCounterLeft(0)
+            setlaughCounterRight(0)
             setCurrentPictureLeft(pictureleft); // Reset to the original left picture
             setCurrentPictureRight(pictureright); // Reset to the original right picture
         };
@@ -282,6 +283,12 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
     return (
         <div className="picture-frame-dual">
             <div className="picture-frame-dual-inner">
+                <div className="picture-frame-dual-cards">
+                    <div className="picture-frame-dual-cards-inner">
+                    {isOrange1 ? <div className="orange1-card">1</div>: null}
+                    {isOrange2 ? <div className="orange2-card">2</div>: null}
+                </div>
+                </div>
                 {view ? 
                 <div className="picture-frame-dual-left">
                     <div className="picture-frame-dual-left-inner">
@@ -290,9 +297,8 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                     {isRedLeft ? <div className="red-card"></div> : null}
                     {isBlackLeft ? <div className="black-card"></div> : null}
                     {isWhiteLeft ? <div className="white-card"></div> : null}
-                    {isOrange1Left ? <div className="orange1-card">1</div> : null}
-                    {isOrange2Left ? <div className="orange2-card">2</div> : null}
                     </div>
+                    {laughtercount ? <div className="picture-frame-dual-laughcounter-left">{laughCounterLeft}</div> : null}
                     <img
                         className="image-left"
                         src={currentPictureLeft}
@@ -326,9 +332,8 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                     {isRedLeft ? <div className="red-card"></div> : null}
                     {isBlackLeft ? <div className="black-card"></div> : null}
                     {isWhiteLeft ? <div className="white-card"></div> : null}
-                    {isOrange1Left ? <div className="orange1-card">1</div> : null}
-                    {isOrange2Left ? <div className="orange2-card">2</div> : null}
                     </div>
+                    {laughtercount ? <div className="picture-frame-dual-laughcounter-left">{laughCounterLeft}</div> : null}
                     <img
                         className="image-left"
                         src={currentPictureLeft}
@@ -375,16 +380,10 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                                 {isWhiteLeft ? "White" : "White"}
                             </button>
                             <button
-                                className={`orange1-button ${isOrange1Left ? "active" : ""}`}
-                                onClick={handleisOrange1Left}
+                                className={`laugh-button}`}
+                                onClick={handlelaughCounterLeft}
                             >
-                                {isOrange1Left ? "Orange 1" : "Orange 1"}
-                            </button>
-                            <button
-                                className={`orange2-button ${isOrange2Left ? "active" : ""}`}
-                                onClick={handleisOrange2Left}
-                            >
-                                {isOrange2Left ? "Orange 2" : "Orange 2"}
+                                Laugh
                             </button>
                         </div>
                 </div>}
@@ -396,9 +395,8 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                 {isRedRight ? <div className="red-card"></div> : null}
                 {isBlackRight ? <div className="black-card"></div> : null}
                 {isWhiteRight ? <div className="white-card"></div> : null}
-                {isOrange1Right ? <div className="orange1-card">1</div> : null}
-                {isOrange2Right ? <div className="orange2-card">2</div> : null}
                 </div>
+                {laughtercount ? <div className="picture-frame-dual-laughcounter-right">{laughCounterRight}</div> : null}
                 <img
                     className="image-right"
                     src={currentPictureRight}
@@ -432,9 +430,8 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                     {isRedRight ? <div className="red-card"></div> : null}
                     {isBlackRight ? <div className="black-card"></div> : null}
                     {isWhiteRight ? <div className="white-card"></div> : null}
-                    {isOrange1Right ? <div className="orange1-card">1</div> : null}
-                    {isOrange2Right ? <div className="orange2-card">2</div> : null}
                     </div>
+                    {laughtercount ? <div className="picture-frame-dual-laughcounter-right">{laughCounterRight}</div> : null}
                     <img
                         className="image-right"
                         src={currentPictureRight}
@@ -481,21 +478,25 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                                 {isWhiteRight ? "White" : "White"}
                             </button>
                             <button
-                                className={`orange1-button ${isOrange1Right ? "active" : ""}`}
-                                onClick={handleisOrange1Right}
+                                className={`laugh-button}`}
+                                onClick={handlelaughCounterRight}
                             >
-                                {isOrange1Right ? "Orange 1" : "Orange 1"}
-                            </button>
-                            <button
-                                className={`orange2-button ${isOrange2Right ? "active" : ""}`}
-                                onClick={handleisOrange2Right}
-                            >
-                                {isOrange2Right ? "Orange 2" : "Orange 2"}
+                                Laugh
                             </button>
                         </div>
                         
                 </div>}
             </div>
+                {view ? "" : 
+                <div className="picture-frame-dual-buttons">
+                    <button className="orange1-button"onClick={handleisOrange1}>
+                        Orange 1
+                    </button>
+                    <button className="orange2-button" onClick={handleisOrange2}>
+                        Orange 2
+                    </button>
+                </div>
+                }
         </div>
     );
 }

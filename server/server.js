@@ -351,39 +351,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("orange1left", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isOrange1Left = data.isOrange1Left;
-      } else {
-        database.push({ index: data.index, isOrange1Left: data.isOrange1Left });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in orange1left event handler:", error);
-    }
-  });
-
-  socket.on("orange1right", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isOrange1Right = data.isOrange1Right;
-      } else {
-        database.push({ index: data.index, isOrange1Right: data.isOrange1Right });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in orange1right event handler:", error);
-    }
-  });
   socket.on("orange2", (data) => {
     try {
       io.emit("receiveinfo", data);
@@ -400,40 +367,56 @@ io.on("connection", (socket) => {
       console.error("Error in orange2 event handler:", error);
     }
   });
-
-  socket.on("orange2left", (data) => {
+  socket.on("laughcounter", (data) => {
+    try {
+      io.emit("receiveinfo", data);
+      console.log("feil socket")
+      console.log(data);
+      const existingEntry = database.find((entry) => entry.index === data.index);
+      if (existingEntry) {
+        existingEntry.laughCounter = data.laughCounter;
+      } else {
+        database.push({ index: data.index, laughCounter: data.laughCounter });
+      }
+      console.log("Updated database:", database);
+      saveDatabase();
+    } catch (error) {
+      console.error("Error in laughCounter event handler:", error);
+    }
+  });
+  socket.on("laughcounterleft", (data) => {
     try {
       io.emit("receiveinfo", data);
       console.log(data);
       const existingEntry = database.find((entry) => entry.index === data.index);
       if (existingEntry) {
-        existingEntry.isOrange2Left = data.isOrange2Left;
+        existingEntry.laughCounterLeft = data.laughCounterLeft;
       } else {
-        database.push({ index: data.index, isOrange2Left: data.isOrange2Left });
+        database.push({ index: data.index, laughCounterLeft: data.laughCounterLeft });
       }
       console.log("Updated database:", database);
       saveDatabase();
     } catch (error) {
-      console.error("Error in orange2left event handler:", error);
+      console.error("Error in laughCounterLeft event handler:", error);
     }
   });
-
-  socket.on("orange2right", (data) => {
+  socket.on("laughcounterright", (data) => {
     try {
       io.emit("receiveinfo", data);
       console.log(data);
       const existingEntry = database.find((entry) => entry.index === data.index);
       if (existingEntry) {
-        existingEntry.isOrange2Right = data.isOrange2Right;
+        existingEntry.laughCounterRight = data.laughCounterRight;
       } else {
-        database.push({ index: data.index, isOrange2Right: data.isOrange2Right });
+        database.push({ index: data.index, laughCounterRight: data.laughCounterRight });
       }
       console.log("Updated database:", database);
       saveDatabase();
     } catch (error) {
-      console.error("Error in orange2right event handler:", error);
+      console.error("Error in laughCounterRight event handler:", error);
     }
   });
+
   socket.on("updateLabel", (data) => {
     try {
       io.emit("receiveinfo", data);
@@ -592,6 +575,11 @@ io.on("connection", (socket) => {
   socket.on("dual", (data) => {
     database.dual = data.dual
     socket.broadcast.emit("dual", data)
+    saveDatabase(); // Save the updated database
+  })
+  socket.on("islaughcounter", (data) => {
+    database.isLaughCounter = data.isLaughCounter
+    socket.broadcast.emit("islaughcounter", data)
     saveDatabase(); // Save the updated database
   })
 });
