@@ -216,6 +216,7 @@ body {
   margin-top: 5px;
   margin-bottom: 5px;
   gap: 5px;
+  width: 100%;
 }
 
 .picture-frame-buttons button:nth-child(1),
@@ -226,7 +227,7 @@ body {
 .picture-frame-buttons button {
   padding: 5px;
   border-radius: 1px;
-  font-size:.6rem;
+  font-size:1rem;
 }
 
 
