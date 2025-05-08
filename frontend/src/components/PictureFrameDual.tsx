@@ -303,7 +303,7 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         className="image-left"
                         src={currentPictureLeft}
                         alt="Placeholder"
-                        id={isRedLeft ? "greyscale" : "color"}
+                        id={isRedLeft || isRedRight ? "greyscale" : "color"}
                     />
                     <input
                         type="text"
@@ -338,7 +338,7 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         className="image-left"
                         src={currentPictureLeft}
                         alt="Placeholder"
-                        id={isRedLeft ? "greyscale" : "color"}
+                        id={isRedLeft || isRedRight ? "greyscale" : "color"}
                     />
                     <input
                         type="text"
@@ -401,7 +401,7 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                     className="image-right"
                     src={currentPictureRight}
                     alt="Placeholder"
-                    id={isRedRight ? "greyscale" : "color"}
+                    id={isRedLeft || isRedRight ? "greyscale" : "color"}
                 />
                 <input
                     type="text"
@@ -436,7 +436,7 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                         className="image-right"
                         src={currentPictureRight}
                         alt="Placeholder"
-                        id={isRedRight ? "greyscale" : "color"}
+                        id={isRedLeft || isRedRight ? "greyscale" : "color"}
                     />
                     <input
                     type="text"
