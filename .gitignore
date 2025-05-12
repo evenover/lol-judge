@@ -12,7 +12,7 @@ lerna-debug.log*
 /*/dist-ssr
 *.local
 /server/uploads
-/server/database.json
+/server/database
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

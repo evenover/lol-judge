@@ -74,9 +74,19 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
         setlaughCounterLeft(laughCounterLeft + 1);
         Socket.emit("laughcounterleft", { index, laughCounterLeft: laughCounterLeft+1 });
     };
+    const handlelaughCounterDownLeft = () => {
+        if (laughCounterLeft <= 0) return; // Prevent negative laugh counter
+        setlaughCounterLeft(laughCounterLeft - 1);
+        Socket.emit("laughcounterleft", { index, laughCounterLeft: laughCounterLeft-1 });
+    };
     const handlelaughCounterRight = () => {
         setlaughCounterRight(laughCounterRight + 1);
         Socket.emit("laughcounterright", { index, laughCounterRight: laughCounterRight+1 });
+    };
+    const handlelaughCounterDownRight = () => {
+        if (laughCounterRight <= 0) return; // Prevent negative laugh counter
+        setlaughCounterRight(laughCounterRight - 1);
+        Socket.emit("laughcounterright", { index, laughCounterRight: laughCounterRight-1 });
     };
 
     const handleDropLeft = async (event: React.DragEvent<HTMLDivElement>) => {
@@ -383,7 +393,13 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                                 className={`laugh-button}`}
                                 onClick={handlelaughCounterLeft}
                             >
-                                Laugh
+                                Laugh +
+                            </button>
+                            <button
+                                className={`laugh-button}`}
+                                onClick={handlelaughCounterDownLeft}
+                            >
+                                Laugh -
                             </button>
                         </div>
                 </div>}
@@ -481,7 +497,13 @@ export default function PictureFrameDual({ pictureleft, pictureright, view, inde
                                 className={`laugh-button}`}
                                 onClick={handlelaughCounterRight}
                             >
-                                Laugh
+                                Laugh +
+                            </button>
+                            <button
+                                className={`laugh-button}`}
+                                onClick={handlelaughCounterDownRight}
+                            >
+                                Laugh -
                             </button>
                         </div>
                         

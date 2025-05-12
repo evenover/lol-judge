@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Socket from "../socket.js";
+import Cards from "./Cards.js";
 
 type PictureFrameProps = {
     picture: string;
@@ -17,28 +18,40 @@ export default function PictureFrame({ picture, view, index, laughtercount }: Pi
     const [currentPicture, setCurrentPicture] = useState(picture);
     const [label, setLabel] = useState("")
 
-    const handleisYellow = () => {
-        setIsYellow(!isYellow);
-        Socket.emit("yellow", { index, isYellow: !isYellow });
-    };
-
-    const handleisRed = () => {
-        setIsRed(!isRed);
-        Socket.emit("red", { index, isRed: !isRed });
-    };
-
-    const handleisBlack = () => {
-        setisBlack(!isBlack)
-        Socket.emit("black", {index, isBlack: !isBlack});
+    const handlebuttonClick = (color: string) => {
+        switch (color) {
+            case "yellow":
+                setIsYellow(!isYellow);
+                Socket.emit("yellow", { index, isYellow: !isYellow });
+                break;
+            case "red":
+                setIsRed(!isRed);
+                Socket.emit("red", { index, isRed: !isRed });
+                break;
+            case "black":
+                setisBlack(!isBlack);
+                Socket.emit("black", { index, isBlack: !isBlack });
+                break;
+            case "white":
+                setisWhite(!isWhite);
+                Socket.emit("white", { index, isWhite: !isWhite });
+                break;
+            default:
+                break;
+        }
     }
 
-    const handleisWhite = () => {
-        setisWhite(!isWhite)
-        Socket.emit("white", {index, isWhite: !isWhite})
-    }
-    const handlelaughCounter = () => {
-        setlaughCounter(laughCounter+1)
-        Socket.emit("laughcounter", {index, laughCounter: laughCounter+1})
+    const handlelaughCounter = (updown: string) => {
+        if (updown === "up") {
+            setlaughCounter(laughCounter+1)
+            Socket.emit("laughcounter", {index, laughCounter: laughCounter+1})
+        } else {
+            if (laughCounter <= 0) {
+                return;
+            }
+            setlaughCounter(laughCounter-1)
+            Socket.emit("laughcounter", {index, laughCounter: laughCounter-1})
+        }
     }
 
     const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
@@ -157,12 +170,16 @@ export default function PictureFrame({ picture, view, index, laughtercount }: Pi
                {view? <div
                     className="picture-frame-inner"
                 >
-                <div className="cards">
-                {isYellow ? <div className="yellow-card"></div> : null}
-                {isRed ? <div className="red-card"></div> : null}
-                {isBlack ? <div className="black-card"></div> : null}
-                {isWhite ? <div className="white-card"></div> : null}
-                </div>
+                <>
+                <Cards
+                    cards={[
+                        { name: "yellow", value: isYellow, color: "yellow" },
+                        { name: "red", value: isRed, color: "red" },
+                        { name: "black", value: isBlack, color: "black" },
+                        { name: "white", value: isWhite, color: "white" },
+                    ]} 
+                />
+                </>
                 <input
                         type="text"
                         value={label} // Bind the input value to the labelLeft state
@@ -217,38 +234,9 @@ export default function PictureFrame({ picture, view, index, laughtercount }: Pi
             </div>}
             {view ? null : (
                 <div className="picture-frame-buttons">
-                    <button
-                        className={`yellow-button ${isYellow ? "active" : ""}`}
-                        onClick={handleisYellow}
-                    >
-                        {isYellow ? "Yellow" : "Yellow"}
-                    </button>
-                    <button
-                        className={`red-button ${isRed ? "active" : ""}`}
-                        onClick={handleisRed}
-                    >
-                        {isRed ? "Red" : "Red"}
-                    </button>
-                    <button
-                        className={`black-button ${isBlack ? "active" : ""}`}
-                        onClick={handleisBlack}
-                    >
-                        {isBlack ? "Black" : "Black"}
-                    </button>
-                    <button
-                        className={`white-button ${isWhite ? "active" : ""}`}
-                        onClick={handleisWhite}
-                    >
-                        {isWhite ? "White" : "White"}
-                    </button>
-                    <button
-                        className={`laugh-button}`}
-                        onClick={handlelaughCounter}
-                    >
-                        Laugh
-                    </button>
-                </div>
+                    
             )}
+
         </div>
     );
 }
