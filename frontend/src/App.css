@@ -155,6 +155,11 @@ body {
   
 }
 
+.picture-frame-dual-inner .picture-frame {
+  width: 50%;
+  height: 100%;
+}
+
 .picture-frame-inner,
 .picture-frame-dual-left-inner,
 .picture-frame-dual-right-inner {
@@ -185,7 +190,8 @@ body {
   width: 100%;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  row-gap: 25px;
+  row-gap: 15px;
+  column-gap: 10px;
   overflow-y: auto;
 }
 
@@ -200,19 +206,17 @@ body {
 
 .picture-frame-dual-inner{
   position: relative;
-    border: 2px solid black;
-    display: flex;
-    flex-direction: row;
-    justify-items: center;
-    height: 90%;
-    width: 90%;
+  border: 2px solid black;
+  display: flex;
+  flex-direction: row;
+  justify-items: center;
+  height: 90%;
+  width: 95%;
 }
 
 .picture-frame-buttons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr); /* 4 equal columns */
-  grid-template-rows: repeat(2, auto); /* 2 rows */
-  grid-auto-flow: row; /* Ensure items flow row by row */
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   margin-top: 5px;
@@ -221,20 +225,22 @@ body {
   width: 100%;
 }
 
-.picture-frame-buttons button:nth-child(1),
-.picture-frame-buttons button:nth-child(2) {
-  grid-column: span 3; /* Make the first two buttons span 2 columns each */
-}
-.picture-frame-buttons button:nth-child(3),
-.picture-frame-buttons button:nth-child(4),
-.picture-frame-buttons button:nth-child(5) {
-  grid-column: span 2; /* Make the first two buttons span 2 columns each */
-}
-
 .picture-frame-buttons button {
   padding: 5px;
   border-radius: 1px;
-  font-size:1rem;
+  font-size: 1rem;
+  flex: 1 1 40%;
+}
+
+.laugh-controls {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.laugh-controls .laugh-button {
+  width: 100%;
 }
 
 
@@ -269,6 +275,25 @@ body {
   z-index: 1000;
 }
 
+.dynamic-card {
+  color: black;
+  border: #1b1e24 2px solid;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 75px;
+  z-index: 1000;
+  font-weight: bold;
+}
+
+.Canvas .dynamic-card {
+  width: 34px;
+  height: 52px;
+  font-size: 0.85rem;
+}
+
 .yellow-card {
   background-color: yellow;
 }
@@ -293,6 +318,8 @@ body {
   z-index: 900;
   width: 130px;
   height: 110px;
+  display: flex;
+  justify-content: space-evenly;
 }
 
 .orange1-card {
@@ -311,6 +338,21 @@ body {
   font-weight: bolder;
   font-size: 25px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 100px;
+  z-index: 1001;
+  background-color: rgb(255, 153, 0);
+}
+
+.team-dynamic-card {
+  color: black;
+  border: #1b1e24 2px solid;
+  border-radius: 5px;
+  font-weight: bolder;
+  font-size: 18px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 50px;
@@ -364,10 +406,94 @@ body {
   border-radius: 2px;
 }
 .picture-frame-dual-buttons {
-  width: 100%;
-  height: 100%;
+  width: 95%;
+  height: auto;
   display: flex;
   flex-direction: row;
   justify-content: center;
   gap: 10px;
+  margin-top: 8px;
+}
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.settings-modal {
+  width: min(520px, 95vw);
+  background: #232730;
+  border: 1px solid #3c4558;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-row,
+.settings-checkbox-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row input[type="number"] {
+  width: 90px;
+}
+
+.settings-card-types {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.settings-card-types p {
+  margin: 0;
+  font-weight: bold;
+}
+
+.settings-add-card-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.settings-add-card-row input {
+  flex: 1;
+}
+
+.settings-quick-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-quick-add button {
+  padding: 4px 8px;
+  font-size: 0.9rem;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.uploadable-placeholder {
+  cursor: pointer;
+  outline: 2px dashed rgba(255, 255, 255, 0.5);
+  outline-offset: -8px;
 }

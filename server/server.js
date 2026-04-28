@@ -1,587 +1,385 @@
-const express = require('express');
+const express = require("express");
 const multer = require("multer");
-const fs = require('fs')
+const fs = require("fs");
 const path = require("path");
-const os = require("os"); // Add this line to import the os module
+const http = require("http");
+const cors = require("cors");
+const { Server } = require("socket.io");
+
 const app = express();
-const http = require('http')
-const {Server} = require('socket.io')
-const cors  = require('cors')
-
-app.use(cors())
-const server = http.createServer(app)
-
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT"],
   },
-
-})
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/"); // Save files to the "uploads" folder
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname); // Extract the file extension
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-        cb(null, uniqueName); // Save the file with a unique name and its original extension
-    },
-});
-
-const upload = multer({ storage }); // Use the custom storage configuration
-
-// Function to get the server's IP address
-function getServerIp() {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === "IPv4" && !iface.internal) {
-                return iface.address; // Return the first non-internal IPv4 address
-            }
-        }
-    }
-    return "localhost"; // Fallback to localhost if no external IP is found
-}
-
-// Use the dynamic IP address in the file URL
-app.post("/uploadpicture", upload.single("file"), (req, res) => {
-    console.log("File upload request received");
-
-    if (!req.file) {
-        console.error("No file uploaded");
-        return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    console.log("Uploaded file details:", req.file);
-
-    const serverIp = getServerIp(); // Get the server's IP address
-    const filePath = path.join(__dirname, "uploads", req.file.filename);
-
-    if (!fs.existsSync(filePath)) {
-        console.error("File not found after upload:", filePath);
-        return res.status(404).json({ error: "File not found after upload" });
-    }
-
-    const fileUrl = `http://${serverIp}:3000/uploads/${req.file.filename}`; // Use the IP address in the URL
-    console.log("File uploaded successfully. URL:", fileUrl);
-    res.json({ url: fileUrl });
-});
-
-// Serve static files from the "uploads" folder
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Serve static frontend
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// Handle client-side routing
-app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'dist', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('index.html not found');
-  }
-});
-
-app.get('/view', (req, res) => {
-  const indexPath = path.join(__dirname, 'dist', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('index.html not found');
-  }
 });
 
 const port = 3000;
-
+const uploadsDir = path.join(__dirname, "uploads");
 const databaseFilePath = path.join(__dirname, "database.json");
 
-// Function to load the database from the JSON file
-function loadDatabase() {
-    if (fs.existsSync(databaseFilePath)) {
-        try {
-            const data = fs.readFileSync(databaseFilePath, "utf8");
-            return JSON.parse(data);
-        } catch (err) {
-            console.error("Error reading database file:", err);
+function resolveFrontendDistDir() {
+  const candidates = [
+    path.join(__dirname, "dist"),
+    path.join(__dirname, "..", "frontend", "dist"),
+  ];
+
+  return candidates.find((dir) => fs.existsSync(path.join(dir, "index.html"))) || null;
+}
+
+const frontendDistDir = resolveFrontendDistDir();
+
+const DEFAULT_SETTINGS = {
+  dual: false,
+  contestants: 10,
+  isLaughCounter: false,
+  cardTypes: ["yellow", "red", "black", "white"],
+  teamCardTypes: ["orange1", "orange2"],
+};
+
+app.use(cors());
+app.use(express.json());
+
+function ensureUploadsDir() {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function sanitizeSettingsPatch(patch) {
+  const sanitized = {};
+
+  if (typeof patch.dual === "boolean") {
+    sanitized.dual = patch.dual;
+  }
+
+  if (Number.isInteger(patch.contestants) && patch.contestants >= 2 && patch.contestants <= 30) {
+    sanitized.contestants = patch.contestants;
+  }
+
+  if (typeof patch.isLaughCounter === "boolean") {
+    sanitized.isLaughCounter = patch.isLaughCounter;
+  }
+
+  if (Array.isArray(patch.cardTypes)) {
+    const normalized = patch.cardTypes
+      .filter((type) => typeof type === "string")
+      .map((type) => type.trim().toLowerCase())
+      .filter((type) => /^[a-z][a-z0-9-]{1,23}$/.test(type));
+
+    const unique = [...new Set(normalized)];
+    if (!unique.includes("yellow")) {
+      unique.unshift("yellow");
+    }
+    if (!unique.includes("red")) {
+      unique.push("red");
+    }
+
+    sanitized.cardTypes = unique;
+  }
+
+  if (Array.isArray(patch.teamCardTypes)) {
+    const normalized = patch.teamCardTypes
+      .filter((type) => typeof type === "string")
+      .map((type) => type.trim().toLowerCase())
+      .filter((type) => /^[a-z][a-z0-9-]{1,23}$/.test(type));
+
+    sanitized.teamCardTypes = [...new Set(normalized)];
+  }
+
+  return sanitized;
+}
+
+function normalizeCard(card) {
+  return {
+    single: safeObject(card.single),
+    left: safeObject(card.left),
+    right: safeObject(card.right),
+    pair: safeObject(card.pair),
+  };
+}
+
+function normalizeDatabase(raw) {
+  const rawObject = safeObject(raw);
+
+  if (rawObject.settings && rawObject.cards) {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      ...sanitizeSettingsPatch(rawObject.settings),
+    };
+
+    if (settings.dual && settings.contestants % 2 !== 0) {
+      settings.contestants += 1;
+    }
+
+    const cards = {};
+    const sourceCards = safeObject(rawObject.cards);
+
+    for (const [key, card] of Object.entries(sourceCards)) {
+      cards[String(key)] = normalizeCard(card);
+    }
+
+    return { settings, cards };
+  }
+
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    dual: typeof rawObject.dual === "boolean" ? rawObject.dual : DEFAULT_SETTINGS.dual,
+    contestants: Number.isInteger(rawObject.contestants) ? rawObject.contestants : DEFAULT_SETTINGS.contestants,
+    isLaughCounter:
+      typeof rawObject.isLaughCounter === "boolean"
+        ? rawObject.isLaughCounter
+        : DEFAULT_SETTINGS.isLaughCounter,
+    cardTypes: Array.isArray(rawObject.cardTypes)
+      ? sanitizeSettingsPatch({ cardTypes: rawObject.cardTypes }).cardTypes || DEFAULT_SETTINGS.cardTypes
+      : DEFAULT_SETTINGS.cardTypes,
+    teamCardTypes: Array.isArray(rawObject.teamCardTypes)
+      ? sanitizeSettingsPatch({ teamCardTypes: rawObject.teamCardTypes }).teamCardTypes || DEFAULT_SETTINGS.teamCardTypes
+      : DEFAULT_SETTINGS.teamCardTypes,
+  };
+
+  if (settings.dual && settings.contestants % 2 !== 0) {
+    settings.contestants += 1;
+  }
+
+  const cards = {};
+  if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      if (!entry || typeof entry.index !== "number") {
+        continue;
+      }
+
+      const card = normalizeCard({});
+      const source = safeObject(entry);
+
+      const singleKeys = ["isYellow", "isRed", "isBlack", "isWhite", "laughCounter", "Label", "picture"];
+      const leftKeys = [
+        "isYellowLeft",
+        "isRedLeft",
+        "isBlackLeft",
+        "isWhiteLeft",
+        "laughCounterLeft",
+        "LabelLeft",
+        "pictureLeft",
+      ];
+      const rightKeys = [
+        "isYellowRight",
+        "isRedRight",
+        "isBlackRight",
+        "isWhiteRight",
+        "laughCounterRight",
+        "LabelRight",
+        "pictureRight",
+      ];
+      const pairKeys = ["isOrange1", "isOrange2"];
+
+      for (const key of singleKeys) {
+        if (source[key] !== undefined) {
+          card.single[key] = source[key];
         }
+      }
+      for (const key of leftKeys) {
+        if (source[key] !== undefined) {
+          card.left[key] = source[key];
+        }
+      }
+      for (const key of rightKeys) {
+        if (source[key] !== undefined) {
+          card.right[key] = source[key];
+        }
+      }
+      for (const key of pairKeys) {
+        if (source[key] !== undefined) {
+          card.pair[key] = source[key];
+        }
+      }
+
+      cards[String(entry.index)] = card;
     }
-    return []; // Return an empty array if the file doesn't exist or fails to load
+  }
+
+  return { settings, cards };
 }
 
-// Function to save the database to the JSON file
+function loadDatabase() {
+  if (!fs.existsSync(databaseFilePath)) {
+    const defaultDb = normalizeDatabase({});
+    fs.writeFileSync(databaseFilePath, JSON.stringify(defaultDb, null, 2), "utf8");
+    return defaultDb;
+  }
+
+  try {
+    const data = fs.readFileSync(databaseFilePath, "utf8");
+    return normalizeDatabase(JSON.parse(data));
+  } catch (error) {
+    console.error("Error reading database file:", error);
+    const fallback = normalizeDatabase({});
+    fs.writeFileSync(databaseFilePath, JSON.stringify(fallback, null, 2), "utf8");
+    return fallback;
+  }
+}
+
 function saveDatabase() {
-    try {
-        fs.writeFileSync(databaseFilePath, JSON.stringify(database, null, 2), "utf8");
-        console.log("Database saved successfully.");
-    } catch (err) {
-        console.error("Error saving database file:", err);
-    }
+  try {
+    fs.writeFileSync(databaseFilePath, JSON.stringify(database, null, 2), "utf8");
+  } catch (error) {
+    console.error("Error saving database file:", error);
+  }
 }
 
-// Load the database when the server starts
+function getCard(index) {
+  const key = String(index);
+  if (!database.cards[key]) {
+    database.cards[key] = normalizeCard({});
+  }
+  return database.cards[key];
+}
+
+function clearUploadedImages() {
+  if (!fs.existsSync(uploadsDir)) {
+    return;
+  }
+
+  for (const fileName of fs.readdirSync(uploadsDir)) {
+    const filePath = path.join(uploadsDir, fileName);
+    try {
+      fs.unlinkSync(filePath);
+    } catch (error) {
+      console.error(`Error deleting file ${fileName}:`, error);
+    }
+  }
+}
+
+ensureUploadsDir();
 const database = loadDatabase();
-database.dual = database.dual || true;
-database.contestants = database.contestants || 8;
+
+const storage = multer.diskStorage({
+  destination: (_, __, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({ storage });
+
+app.post("/uploadpicture", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+  return res.json({ url: fileUrl });
+});
+
+app.get("/api/settings", (_, res) => {
+  res.json(database.settings);
+});
+
+app.put("/api/settings", (req, res) => {
+  const patch = sanitizeSettingsPatch(safeObject(req.body));
+  database.settings = { ...database.settings, ...patch };
+
+  if (database.settings.dual && database.settings.contestants % 2 !== 0) {
+    database.settings.contestants += 1;
+  }
+
+  saveDatabase();
+  io.emit("settings:update", database.settings);
+  res.json(database.settings);
+});
+
+app.use("/uploads", express.static(uploadsDir));
+if (frontendDistDir) {
+  app.use(express.static(frontendDistDir));
+
+  app.get(["/", "/view"], (_, res) => {
+    res.sendFile(path.join(frontendDistDir, "index.html"));
+  });
+} else {
+  app.get(["/", "/view"], (_, res) => {
+    res.status(503).send("Frontend is not built yet. Run: cd frontend && npm run build");
+  });
+}
 
 io.on("connection", (socket) => {
-  console.log(`User connected ${socket.id}`);
-  socket.emit("dual", { dual: database.dual });
-  socket.emit("contestants", { contestants: database.contestants });
-
-  socket.on("yellow", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isYellow = data.isYellow;
-      } else {
-        database.push({ index: data.index, isYellow: data.isYellow });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in yellow event handler:", error);
-    }
+  socket.emit("app:init", {
+    settings: database.settings,
   });
 
-  socket.on("yellowleft", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isYellowLeft = data.isYellowLeft;
-      } else {
-        database.push({ index: data.index, isYellowLeft: data.isYellowLeft });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in yellowleft event handler:", error);
+  socket.on("settings:update", (patch) => {
+    const safePatch = sanitizeSettingsPatch(safeObject(patch));
+    database.settings = { ...database.settings, ...safePatch };
+
+    if (database.settings.dual && database.settings.contestants % 2 !== 0) {
+      database.settings.contestants += 1;
     }
+
+    saveDatabase();
+    io.emit("settings:update", database.settings);
   });
 
-  socket.on("yellowright", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isYellowRight = data.isYellowRight;
-      } else {
-        database.push({ index: data.index, isYellowRight: data.isYellowRight });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in yellowright event handler:", error);
+  socket.on("card:get", ({ index }) => {
+    if (!Number.isInteger(index) || index < 0) {
+      return;
     }
+
+    socket.emit("card:state", {
+      index,
+      card: getCard(index),
+    });
   });
 
-  socket.on("red", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isRed = data.isRed;
-      } else {
-        database.push({ index: data.index, isRed: data.isRed });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in red event handler:", error);
+  socket.on("card:update", ({ index, lane, patch }) => {
+    if (!Number.isInteger(index) || index < 0) {
+      return;
     }
+    if (!["single", "left", "right"].includes(lane)) {
+      return;
+    }
+
+    const safePatch = safeObject(patch);
+    const card = getCard(index);
+    card[lane] = { ...card[lane], ...safePatch };
+    saveDatabase();
+
+    io.emit("card:update", {
+      index,
+      lane,
+      patch: card[lane],
+    });
   });
 
-  socket.on("redleft", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isRedLeft = data.isRedLeft;
-      } else {
-        database.push({ index: data.index, isRedLeft: data.isRedLeft });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in redleft event handler:", error);
+  socket.on("pair:update", ({ index, patch }) => {
+    if (!Number.isInteger(index) || index < 0) {
+      return;
     }
-  });
 
-  socket.on("redright", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isRedRight = data.isRedRight;
-      } else {
-        database.push({ index: data.index, isRedRight: data.isRedRight });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in redright event handler:", error);
-    }
-  });
+    const safePatch = safeObject(patch);
+    const card = getCard(index);
+    card.pair = { ...card.pair, ...safePatch };
+    saveDatabase();
 
-  socket.on("black", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isBlack = data.isBlack;
-      } else {
-        database.push({ index: data.index, isBlack: data.isBlack });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in black event handler:", error);
-    }
-  });
-
-  socket.on("blackleft", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isBlackLeft = data.isBlackLeft;
-      } else {
-        database.push({ index: data.index, isBlackLeft: data.isBlackLeft });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in blackleft event handler:", error);
-    }
-  });
-
-  socket.on("blackright", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isBlackRight = data.isBlackRight;
-      } else {
-        database.push({ index: data.index, isBlackRight: data.isBlackRight });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in blackright event handler:", error);
-    }
-  });
-
-  socket.on("white", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isWhite = data.isWhite;
-      } else {
-        database.push({ index: data.index, isWhite: data.isWhite });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in white event handler:", error);
-    }
-  });
-
-  socket.on("whiteleft", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isWhiteLeft = data.isWhiteLeft;
-      } else {
-        database.push({ index: data.index, isWhiteLeft: data.isWhiteLeft });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in whiteleft event handler:", error);
-    }
-  });
-
-  socket.on("whiteright", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isWhiteRight = data.isWhiteRight;
-      } else {
-        database.push({ index: data.index, isWhiteRight: data.isWhiteRight });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in whiteright event handler:", error);
-    }
-  });
-  socket.on("orange1", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isOrange1 = data.isOrange1;
-      } else {
-        database.push({ index: data.index, isOrange1: data.isOrange1 });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in orange1 event handler:", error);
-    }
-  });
-
-  socket.on("orange2", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.isOrange2 = data.isOrange2;
-      } else {
-        database.push({ index: data.index, isOrange2: data.isOrange2 });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in orange2 event handler:", error);
-    }
-  });
-  socket.on("laughcounter", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log("feil socket")
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.laughCounter = data.laughCounter;
-      } else {
-        database.push({ index: data.index, laughCounter: data.laughCounter });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in laughCounter event handler:", error);
-    }
-  });
-  socket.on("laughcounterleft", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.laughCounterLeft = data.laughCounterLeft;
-      } else {
-        database.push({ index: data.index, laughCounterLeft: data.laughCounterLeft });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in laughCounterLeft event handler:", error);
-    }
-  });
-  socket.on("laughcounterright", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.laughCounterRight = data.laughCounterRight;
-      } else {
-        database.push({ index: data.index, laughCounterRight: data.laughCounterRight });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in laughCounterRight event handler:", error);
-    }
-  });
-
-  socket.on("updateLabel", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.Label = data.Label;
-      } else {
-        database.push({ index: data.index, Label: data.Label });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in label event handler:", error);
-    }
-  });
-
-  socket.on("updateLabelLeft", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.LabelLeft = data.LabelLeft;
-      } else {
-        database.push({ index: data.index, LabelLeft: data.LabelLeft });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in labelleft event handler:", error);
-    }
-  });
-
-  socket.on("updateLabelRight", (data) => {
-    try {
-      io.emit("receiveinfo", data);
-      console.log(data);
-      const existingEntry = database.find((entry) => entry.index === data.index);
-      if (existingEntry) {
-        existingEntry.LabelRight = data.LabelRight;
-      } else {
-        database.push({ index: data.index, LabelRight: data.LabelRight });
-      }
-      console.log("Updated database:", database);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in labelright event handler:", error);
-    }
-  });
-
-  socket.on("contestants", (data) => {
-    try {
-      database.contestants = data.contestants;
-      socket.broadcast.emit("contestants", data);
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in contestants event handler:", error);
-    }
-  });
-
-  socket.on("updatepicture", (data) => {
-    try {
-      console.log("updating picture");
-      const { index, picture } = data;
-      console.log(`Updating picture for index: ${index}`);
-      const entry = database.find((entry) => entry.index === index);
-      if (entry) {
-        entry.picture = picture;
-      } else {
-        database.push({ index, picture });
-      }
-      io.emit("receiveinfo", { index, picture });
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in updatepicture event handler:", error);
-    }
-  });
-
-  socket.on("updatepictureleft", (data) => {
-    try {
-      const { index, picture } = data;
-      console.log(`Updating picture left for index: ${index}`);
-      const entry = database.find((entry) => entry.index === index);
-      if (entry) {
-        entry.pictureLeft = picture;
-      } else {
-        database.push({ index, pictureLeft: picture });
-      }
-      io.emit("receiveinfo", { index, pictureLeft: picture });
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in updatepictureleft event handler:", error);
-    }
-  });
-
-  socket.on("updatepictureright", (data) => {
-    try {
-      const { index, picture } = data;
-      console.log(`Updating picture right for index: ${index}`);
-      const entry = database.find((entry) => entry.index === index);
-      if (entry) {
-        entry.pictureRight = picture;
-      } else {
-        database.push({ index, pictureRight: picture });
-      }
-      io.emit("receiveinfo", { index, pictureRight: picture });
-      saveDatabase();
-    } catch (error) {
-      console.error("Error in updatepictureright event handler:", error);
-    }
-  });
-  socket.on("getinfo", (data) => {
-    console.log("Getinfo event received:", data);
-
-    // Find the entry in the database that matches the provided index
-    const entry = database.find((entry) => entry.index === data.index);
-
-    // Emit the entry back to the client
-    if (entry) {
-        io.emit("receiveinfo", entry);
-    } else {
-        io.emit("receiveinfo", { error: "No data found for the given index" });
-    }
+    io.emit("pair:update", {
+      index,
+      patch: card.pair,
+    });
   });
 
   socket.on("resetstats", () => {
-    database.length = 0;
-
-    // Delete all files in the "uploads" folder
-    const uploadsDir = path.join(__dirname, "uploads");
-    fs.readdir(uploadsDir, (err, files) => {
-        if (err) {
-            console.error("Error reading uploads directory:", err);
-            return;
-        }
-
-        for (const file of files) {
-            const filePath = path.join(uploadsDir, file);
-            fs.unlink(filePath, (err) => {
-                if (err) {
-                    console.error(`Error deleting file ${file}:`, err);
-                } else {
-                    console.log(`Deleted file: ${file}`);
-                }
-            });
-        }
-    });
-
-    // Save an empty array to the JSON file
+    database.cards = {};
+    clearUploadedImages();
     saveDatabase();
-
-    io.emit("resetstats");
+    io.emit("cards:reset");
   });
-
-  socket.on("dual", (data) => {
-    database.dual = data.dual
-    socket.broadcast.emit("dual", data)
-    saveDatabase(); // Save the updated database
-  })
-  socket.on("islaughcounter", (data) => {
-    database.isLaughCounter = data.isLaughCounter
-    socket.broadcast.emit("islaughcounter", data)
-    saveDatabase(); // Save the updated database
-  })
 });
 
 server.listen(port, () => {

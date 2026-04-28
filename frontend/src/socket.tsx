@@ -1,12 +1,12 @@
 // socket.js
 import { io } from "socket.io-client";
 
-// Dynamically determine the server's hostname
 const serverHost = window.location.hostname;
+const socketUrl = import.meta.env.DEV ? `http://${serverHost}:3000` : undefined;
 
-// Use the dynamic hostname for the Socket.IO connection
-const Socket = io(`http://${serverHost}:3000`, {
-  autoConnect: false, // optional: you can manually connect
+const Socket = io(socketUrl, {
+  autoConnect: false,
+  transports: ["websocket"],
 });
 
 export default Socket;

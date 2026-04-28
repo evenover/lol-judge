@@ -1,84 +1,144 @@
-import { useState, useEffect, useCallback } from 'react';
-import Socket from './socket.js';
-import './App.css';
-import Header from './components/Header.js';
-import PictureFrame from './components/PictureFrame.js';
-import PictureFrameDual from './components/PictureFrameDual.js';
-import StartMenu from './components/StartMenu.js';
+import { useEffect, useMemo, useState } from "react";
+import Socket from "./socket.js";
+import "./App.css";
+import Header from "./components/Header.js";
+import PictureFrame from "./components/PictureFrame";
+import StartMenu from "./components/StartMenu.js";
+import SettingsModal from "./components/SettingsModal.js";
 
-function App() {
+type AppSettings = {
+  dual: boolean;
+  contestants: number;
+  isLaughCounter: boolean;
+  cardTypes: string[];
+  teamCardTypes: string[];
+};
+
+const DEFAULT_SETTINGS: AppSettings = {
+  dual: true,
+  contestants: 8,
+  isLaughCounter: false,
+  cardTypes: ["yellow", "red", "black", "white"],
+  teamCardTypes: ["orange1", "orange2"],
+};
+
+type PairState = {
+  cards: Record<string, boolean>;
+};
+
+function getLegacyTeamCards(pairData: Record<string, unknown>) {
+  return {
+    orange1: Boolean(pairData.isOrange1),
+    orange2: Boolean(pairData.isOrange2),
+  };
+}
+
+function getPairState(pairData: Record<string, unknown> | undefined): PairState {
+  const safeData = pairData || {};
+  const cardsFromData = safeData.cards && typeof safeData.cards === "object" ? (safeData.cards as Record<string, boolean>) : {};
+
+  return {
+    cards: {
+      ...getLegacyTeamCards(safeData),
+      ...cardsFromData,
+    },
+  };
+}
+
+export default function App() {
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [isStarted, setIsStarted] = useState(true);
+  const [isView, setIsView] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pairCards, setPairCards] = useState<Record<number, PairState>>({});
 
   useEffect(() => {
     if (!Socket.connected) {
       Socket.connect();
     }
 
-      const currentPath = window.location.pathname;
-      if (currentPath === '/view'){
-        setIsView(true);
+    const currentPath = window.location.pathname;
+    if (currentPath === "/view") {
+      setIsStarted(false);
+      setIsView(true);
+    }
+
+    const handleInit = (data: any) => {
+      if (data.settings) {
+        setSettings((prev) => ({ ...prev, ...data.settings }));
+      }
+    };
+
+    const handleSettingsUpdate = (nextSettings: AppSettings) => {
+      setSettings((prev) => ({ ...prev, ...nextSettings }));
+    };
+
+    const handlePairUpdate = (data: any) => {
+      if (typeof data.index !== "number") {
+        return;
       }
 
-    const handleDual = (data: any) => {
-      setIsDual(data.dual);
+      setPairCards((prev) => ({
+        ...prev,
+        [data.index]: getPairState({
+          ...(prev[data.index] || {}),
+          ...(data.patch || {}),
+          cards: {
+            ...((prev[data.index] || { cards: {} }).cards || {}),
+            ...((data.patch || {}).cards || {}),
+          },
+        }),
+      }));
     };
 
-    const handleContestants = (data: any) => {
-      setContestants(data.contestants);
-    };
-    const handleLaughCounter = (data: any) => {
-      setisLaughCounter(data.isLaughCounter);
+    const handleCardState = (data: any) => {
+      if (typeof data.index !== "number" || !data.card?.pair) {
+        return;
+      }
+
+      setPairCards((prev) => ({
+        ...prev,
+        [data.index]: getPairState({
+          ...(prev[data.index] || {}),
+          ...(data.card.pair || {}),
+          cards: {
+            ...((prev[data.index] || { cards: {} }).cards || {}),
+            ...((data.card.pair || {}).cards || {}),
+          },
+        }),
+      }));
     };
 
-    const handleResetStats = () => {
-      // Reset global state
+    const handleCardsReset = () => {
+      setPairCards({});
     };
 
-    Socket.on("dual", handleDual);
-    Socket.on("contestants", handleContestants);
-    Socket.on("resetstats", handleResetStats);
-    Socket.on("islaughcounter", handleLaughCounter)
+    Socket.on("app:init", handleInit);
+    Socket.on("settings:update", handleSettingsUpdate);
+    Socket.on("pair:update", handlePairUpdate);
+    Socket.on("card:state", handleCardState);
+    Socket.on("cards:reset", handleCardsReset);
 
     return () => {
-      Socket.off("dual", handleDual);
-      Socket.off("contestants", handleContestants);
-      Socket.off("resetstats", handleResetStats);
-      Socket.off("islaughcounter", handleLaughCounter)
+      Socket.off("app:init", handleInit);
+      Socket.off("settings:update", handleSettingsUpdate);
+      Socket.off("pair:update", handlePairUpdate);
+      Socket.off("card:state", handleCardState);
+      Socket.off("cards:reset", handleCardsReset);
       Socket.disconnect();
     };
   }, []);
 
-  const [isDual, setIsDual] = useState(true);
-  const [Contestants, setContestants] = useState(8);
-  const [isStarted, setIsStarted] = useState(true);
-  const [isView, setIsView] = useState(false);
-  const [isLaughCounter, setisLaughCounter] = useState(false)
-
-  const pictures = Array(Contestants).fill('/profileplaceholder.jpg'); // Use the placeholder image for all pictures
-
-   // Check if the current path is "/view" and set isView to true
-   useEffect(() => {
-    if (location.pathname === "/view") {
-      setIsStarted(false);
-      setIsView(true);
+  useEffect(() => {
+    if (!settings.dual) {
+      return;
     }
-  }, [location.pathname]);
 
-  const handleContestantsChange = (newContestants: number) => {
-    setContestants(newContestants);
-    Socket.emit("contestants", {contestants: newContestants})
-  };
-
-  const toggleDual = useCallback(() => {
-    if (isDual) {
-      setContestants(10); // Reset to 10 contestants when toggling
-      Socket.emit("contestants", {contestants: 10} )
-    } else {
-      setContestants(8); // Set to 8 contestants when toggling
-      Socket.emit("contestants", {contestants: 8} )
+    const pairs = Math.floor(settings.contestants / 2);
+    for (let index = 0; index < pairs; index += 1) {
+      Socket.emit("card:get", { index });
     }
-    Socket.emit("dual", {dual: !isDual});
-    setIsDual(!isDual);
-  }, [isDual]);
+  }, [settings.dual, settings.contestants]);
 
   const handleView = () => {
     setIsStarted(false);
@@ -90,14 +150,44 @@ function App() {
     setIsView(false);
   };
 
-  const handleresetstats = () => {
-    Socket.emit("resetstats")
-  }
+  const handleResetStats = () => {
+    Socket.emit("resetstats");
+  };
 
-  const handleisLaughCounter = () => {
-    setisLaughCounter(!isLaughCounter)
-    Socket.emit("islaughcounter", {isLaughCounter: !isLaughCounter})
-  }
+  const toggleLaughCounter = () => {
+    Socket.emit("settings:update", { isLaughCounter: !settings.isLaughCounter });
+  };
+
+  const saveSettings = async (nextSettings: AppSettings) => {
+    const normalizedTypes = [...new Set(["yellow", "red", ...nextSettings.cardTypes.map((type) => type.toLowerCase())])];
+    const normalizedTeamTypes = [...new Set(nextSettings.teamCardTypes.map((type) => type.toLowerCase()))];
+    const normalizedSettings = { ...nextSettings, cardTypes: normalizedTypes, teamCardTypes: normalizedTeamTypes };
+
+    setSettingsOpen(false);
+    Socket.emit("settings:update", normalizedSettings);
+
+    try {
+      await fetch("/api/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(normalizedSettings),
+      });
+    } catch (error) {
+      console.error("Failed to persist settings via API, websocket update still applied.", error);
+    }
+  };
+
+  const singlePictures = useMemo(
+    () => Array(settings.contestants).fill("/profileplaceholder.jpg"),
+    [settings.contestants],
+  );
+
+  const dualPairs = useMemo(() => {
+    const pairCount = Math.floor(settings.contestants / 2);
+    return Array.from({ length: pairCount }, (_, index) => index);
+  }, [settings.contestants]);
 
   return (
     <div className="App">
@@ -106,52 +196,97 @@ function App() {
       ) : (
         <>
           <Header
-            onDualClick={toggleDual}
-            onContestantsChange={handleContestantsChange}
-            onResetClick={handleresetstats}
-            onLaughCountClick={handleisLaughCounter}
-            dual={isDual}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onResetClick={handleResetStats}
+            onLaughCountClick={toggleLaughCounter}
+            isLaughCounter={settings.isLaughCounter}
             view={isView}
           />
-          <div className={"Canvas" + (isDual ? "-dual" : "")}>
-            {isDual ? (
-              <>
-                {pictures
-                  .reduce((pairs: [string, string][], _, index, arr) => {
-                    if (index % 2 === 0 && arr[index + 1]) {
-                      pairs.push([arr[index], arr[index + 1]]);
-                    }
-                    return pairs;
-                  }, [])
-                  .map(([left, right]: [string, string], index) => (
-                    <PictureFrameDual
-                      key={index}
-                      pictureleft={left}
-                      pictureright={right}
-                      view={isView}
-                      index={index}
-                      laughtercount={isLaughCounter}
-                    />
-                  ))}
-              </>
-            ) : (
-              <>
-                {pictures.map((picture, index) => (
+
+          <SettingsModal
+            open={settingsOpen}
+            settings={settings}
+            onClose={() => setSettingsOpen(false)}
+            onSave={saveSettings}
+          />
+
+          <div className={"Canvas" + (settings.dual ? "-dual" : "")}>
+            {settings.dual
+              ? dualPairs.map((index) => {
+                  const pairState = pairCards[index] || { cards: {} };
+
+                  return (
+                    <div key={index} className="picture-frame-dual">
+                      <div className="picture-frame-dual-inner">
+                        <div className="picture-frame-dual-cards">
+                          {settings.teamCardTypes.map((teamCardType) =>
+                            pairState.cards[teamCardType] ? (
+                              <div key={teamCardType} className="team-dynamic-card" title={teamCardType}>
+                                {teamCardType.slice(0, 2).toUpperCase()}
+                              </div>
+                            ) : null,
+                          )}
+                        </div>
+
+                        <PictureFrame
+                          index={index}
+                          lane="left"
+                          picture="/profileplaceholder.jpg"
+                          view={isView}
+                          laughtercount={settings.isLaughCounter}
+                          enabledCardTypes={settings.cardTypes}
+                        />
+                        <PictureFrame
+                          index={index}
+                          lane="right"
+                          picture="/profileplaceholder.jpg"
+                          view={isView}
+                          laughtercount={settings.isLaughCounter}
+                          enabledCardTypes={settings.cardTypes}
+                        />
+                      </div>
+
+                      {isView ? null : (
+                        <div className="picture-frame-dual-buttons">
+                          {settings.teamCardTypes.map((teamCardType) => {
+                            const nextCards = {
+                              ...pairState.cards,
+                              [teamCardType]: !pairState.cards[teamCardType],
+                            };
+
+                            return (
+                              <button
+                                key={teamCardType}
+                                className={pairState.cards[teamCardType] ? "active" : ""}
+                                onClick={() =>
+                                  Socket.emit("pair:update", {
+                                    index,
+                                    patch: { cards: nextCards },
+                                  })
+                                }
+                              >
+                                {teamCardType}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              : singlePictures.map((picture, index) => (
                   <PictureFrame
                     key={index}
                     picture={picture}
                     view={isView}
                     index={index}
-                    laughtercount={isLaughCounter}
+                    laughtercount={settings.isLaughCounter}
+                    enabledCardTypes={settings.cardTypes}
                   />
                 ))}
-              </>
-            )}
           </div>
         </>
       )}
     </div>
   );
 }
-
-export default App;
