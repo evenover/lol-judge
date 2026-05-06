@@ -104,6 +104,28 @@ function normalizeCard(card) {
   };
 }
 
+function normalizePressLog(rawLog) {
+  if (!Array.isArray(rawLog)) {
+    return [];
+  }
+
+  return rawLog
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry) => {
+      const safeEntry = safeObject(entry);
+      return {
+        id: typeof safeEntry.id === "string" ? safeEntry.id : `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+        timestamp: typeof safeEntry.timestamp === "string" ? safeEntry.timestamp : new Date().toISOString(),
+        timeOfDay: typeof safeEntry.timeOfDay === "string" ? safeEntry.timeOfDay : "00:00:00",
+        index: Number.isInteger(safeEntry.index) ? safeEntry.index : 0,
+        lane: ["single", "left", "right", "pair"].includes(safeEntry.lane) ? safeEntry.lane : "single",
+        cardType: typeof safeEntry.cardType === "string" ? safeEntry.cardType : "unknown",
+        player: typeof safeEntry.player === "string" ? safeEntry.player : "Unknown",
+        label: typeof safeEntry.label === "string" ? safeEntry.label : "",
+      };
+    });
+}
+
 function normalizeDatabase(raw) {
   const rawObject = safeObject(raw);
 
@@ -124,7 +146,11 @@ function normalizeDatabase(raw) {
       cards[String(key)] = normalizeCard(card);
     }
 
-    return { settings, cards };
+    return {
+      settings,
+      cards,
+      pressLog: normalizePressLog(rawObject.pressLog),
+    };
   }
 
   const settings = {
@@ -203,7 +229,11 @@ function normalizeDatabase(raw) {
     }
   }
 
-  return { settings, cards };
+  return {
+    settings,
+    cards,
+    pressLog: [],
+  };
 }
 
 function loadDatabase() {
@@ -238,6 +268,66 @@ function getCard(index) {
     database.cards[key] = normalizeCard({});
   }
   return database.cards[key];
+}
+
+function buildPlayerName(index, lane) {
+  if (lane === "left") {
+    return `Player ${index * 2 + 1}`;
+  }
+  if (lane === "right") {
+    return `Player ${index * 2 + 2}`;
+  }
+  if (lane === "pair") {
+    return `Pair ${index + 1}`;
+  }
+  return `Player ${index + 1}`;
+}
+
+function buildLabelKey(lane) {
+  if (lane === "single") {
+    return "Label";
+  }
+  if (lane === "left") {
+    return "LabelLeft";
+  }
+  if (lane === "right") {
+    return "LabelRight";
+  }
+  return "";
+}
+
+function appendPressLogEntries(index, lane, previousCards, nextCards, stateForLabel) {
+  const now = new Date();
+  const timeOfDay = now.toLocaleTimeString("en-GB", { hour12: false });
+  const player = buildPlayerName(index, lane);
+  const labelKey = buildLabelKey(lane);
+  const label = labelKey ? String(stateForLabel[labelKey] || "") : "";
+
+  const pressedEntries = [];
+  for (const [cardType, value] of Object.entries(nextCards)) {
+    const wasPressed = Boolean(previousCards[cardType]);
+    const isPressed = Boolean(value);
+    if (!wasPressed && isPressed) {
+      pressedEntries.push({
+        id: `${now.getTime()}-${Math.round(Math.random() * 1e9)}`,
+        timestamp: now.toISOString(),
+        timeOfDay,
+        index,
+        lane,
+        cardType,
+        player,
+        label,
+      });
+    }
+  }
+
+  if (pressedEntries.length === 0) {
+    return;
+  }
+
+  const existingLog = Array.isArray(database.pressLog) ? database.pressLog : [];
+  database.pressLog = [...pressedEntries, ...existingLog].slice(0, 500);
+  io.emit("card:press-log:update", pressedEntries);
 }
 
 function clearUploadedImages() {
@@ -313,6 +403,7 @@ if (frontendDistDir) {
 io.on("connection", (socket) => {
   socket.emit("app:init", {
     settings: database.settings,
+    pressLog: database.pressLog,
   });
 
   socket.on("settings:update", (patch) => {
@@ -348,7 +439,14 @@ io.on("connection", (socket) => {
 
     const safePatch = safeObject(patch);
     const card = getCard(index);
+    const previousLaneState = safeObject(card[lane]);
+    const previousCards = safeObject(previousLaneState.cards);
     card[lane] = { ...card[lane], ...safePatch };
+
+    const nextLaneState = safeObject(card[lane]);
+    const nextCards = safeObject(nextLaneState.cards);
+    appendPressLogEntries(index, lane, previousCards, nextCards, nextLaneState);
+
     saveDatabase();
 
     io.emit("card:update", {
@@ -365,7 +463,14 @@ io.on("connection", (socket) => {
 
     const safePatch = safeObject(patch);
     const card = getCard(index);
+    const previousPairState = safeObject(card.pair);
+    const previousCards = safeObject(previousPairState.cards);
     card.pair = { ...card.pair, ...safePatch };
+
+    const nextPairState = safeObject(card.pair);
+    const nextCards = safeObject(nextPairState.cards);
+    appendPressLogEntries(index, "pair", previousCards, nextCards, nextPairState);
+
     saveDatabase();
 
     io.emit("pair:update", {
@@ -376,9 +481,15 @@ io.on("connection", (socket) => {
 
   socket.on("resetstats", () => {
     database.cards = {};
+    database.pressLog = [];
     clearUploadedImages();
     saveDatabase();
     io.emit("cards:reset");
+    io.emit("card:press-log", []);
+  });
+
+  socket.on("card:press-log:get", () => {
+    socket.emit("card:press-log", Array.isArray(database.pressLog) ? database.pressLog : []);
   });
 });
 

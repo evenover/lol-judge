@@ -26,6 +26,17 @@ type PairState = {
   cards: Record<string, boolean>;
 };
 
+type CardPressLogEntry = {
+  id: string;
+  timestamp: string;
+  timeOfDay: string;
+  index: number;
+  lane: "single" | "left" | "right" | "pair";
+  cardType: string;
+  player: string;
+  label: string;
+};
+
 function getLegacyTeamCards(pairData: Record<string, unknown>) {
   return {
     orange1: Boolean(pairData.isOrange1),
@@ -51,6 +62,8 @@ export default function App() {
   const [isView, setIsView] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pairCards, setPairCards] = useState<Record<number, PairState>>({});
+  const [pressLog, setPressLog] = useState<CardPressLogEntry[]>([]);
+  const [showPressLog, setShowPressLog] = useState(false);
 
   useEffect(() => {
     if (!Socket.connected) {
@@ -66,6 +79,10 @@ export default function App() {
     const handleInit = (data: any) => {
       if (data.settings) {
         setSettings((prev) => ({ ...prev, ...data.settings }));
+      }
+
+      if (Array.isArray(data.pressLog)) {
+        setPressLog(data.pressLog);
       }
     };
 
@@ -113,11 +130,27 @@ export default function App() {
       setPairCards({});
     };
 
+    const handlePressLog = (entries: CardPressLogEntry[]) => {
+      if (!Array.isArray(entries)) {
+        return;
+      }
+      setPressLog(entries);
+    };
+
+    const handlePressLogUpdate = (entries: CardPressLogEntry[]) => {
+      if (!Array.isArray(entries) || entries.length === 0) {
+        return;
+      }
+      setPressLog((prev) => [...entries, ...prev]);
+    };
+
     Socket.on("app:init", handleInit);
     Socket.on("settings:update", handleSettingsUpdate);
     Socket.on("pair:update", handlePairUpdate);
     Socket.on("card:state", handleCardState);
     Socket.on("cards:reset", handleCardsReset);
+    Socket.on("card:press-log", handlePressLog);
+    Socket.on("card:press-log:update", handlePressLogUpdate);
 
     return () => {
       Socket.off("app:init", handleInit);
@@ -125,6 +158,8 @@ export default function App() {
       Socket.off("pair:update", handlePairUpdate);
       Socket.off("card:state", handleCardState);
       Socket.off("cards:reset", handleCardsReset);
+      Socket.off("card:press-log", handlePressLog);
+      Socket.off("card:press-log:update", handlePressLogUpdate);
       Socket.disconnect();
     };
   }, []);
@@ -158,6 +193,11 @@ export default function App() {
     Socket.emit("settings:update", { isLaughCounter: !settings.isLaughCounter });
   };
 
+  const openPressLog = () => {
+    setShowPressLog(true);
+    Socket.emit("card:press-log:get");
+  };
+
   const saveSettings = async (nextSettings: AppSettings) => {
     const normalizedTypes = [...new Set(["yellow", "red", ...nextSettings.cardTypes.map((type) => type.toLowerCase())])];
     const normalizedTeamTypes = [...new Set(nextSettings.teamCardTypes.map((type) => type.toLowerCase()))];
@@ -189,6 +229,14 @@ export default function App() {
     return Array.from({ length: pairCount }, (_, index) => index);
   }, [settings.contestants]);
 
+  const renderPressLogDescription = (entry: CardPressLogEntry) => {
+    const labelPrefix = entry.label ? `${entry.label} - ` : "";
+    if (entry.lane === "pair") {
+      return `${entry.timeOfDay} - ${entry.player}: ${entry.cardType.toUpperCase()} team card`;
+    }
+    return `${entry.timeOfDay} - ${labelPrefix}${entry.player}: ${entry.cardType.toUpperCase()} card`;
+  };
+
   return (
     <div className="App">
       {isStarted ? (
@@ -199,9 +247,30 @@ export default function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onResetClick={handleResetStats}
             onLaughCountClick={toggleLaughCounter}
+            onPressLogClick={openPressLog}
             isLaughCounter={settings.isLaughCounter}
             view={isView}
           />
+
+          {!isView && showPressLog ? (
+            <div className="press-log-overlay" onClick={() => setShowPressLog(false)}>
+              <div className="press-log-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="press-log-header">
+                  <h2>Card Press Log</h2>
+                  <button onClick={() => setShowPressLog(false)}>Close</button>
+                </div>
+                {pressLog.length === 0 ? (
+                  <p className="press-log-empty">No card presses registered yet.</p>
+                ) : (
+                  <ul className="press-log-list">
+                    {pressLog.map((entry) => (
+                      <li key={entry.id}>{renderPressLogDescription(entry)}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
 
           <SettingsModal
             open={settingsOpen}

@@ -497,3 +497,55 @@ body {
   outline: 2px dashed rgba(255, 255, 255, 0.5);
   outline-offset: -8px;
 }
+
+.press-log-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.press-log-modal {
+  width: min(640px, 95vw);
+  max-height: min(75vh, 700px);
+  overflow: hidden;
+  background: #20242c;
+  border: 1px solid #3a4555;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.press-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #3a4555;
+}
+
+.press-log-header h2 {
+  margin: 0;
+  color: var(--secondary-color);
+}
+
+.press-log-list {
+  margin: 0;
+  padding: 0 16px 16px;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.press-log-list li {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 0;
+  font-size: 0.95rem;
+}
+
+.press-log-empty {
+  margin: 0;
+  padding: 18px 16px;
+}
