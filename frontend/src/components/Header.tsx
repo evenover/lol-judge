@@ -18,12 +18,17 @@ export default function Header({
   return (
     <header className="App-header">
       {view ? null : (
+        <>
         <div className="header-buttons">
           <button onClick={onOpenSettings}>Settings</button>
           <button onClick={onLaughCountClick}>{isLaughCounter ? "LaughCount: On" : "LaughCount: Off"}</button>
           <button onClick={onPressLogClick}>Card Press Log</button>
+        </div>
+        <div className="header-reset">
           <button onClick={onResetClick}>Reset</button>
         </div>
+        </>
+        
       )}
 
       <div className="header-title">

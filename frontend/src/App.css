@@ -60,6 +60,13 @@ body {
   gap: 10px;
 }
 
+.header-reset {
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-left: auto;
+  margin-right: 10px;
+}
+
 .header-logo {
   margin-top: auto;
   margin-bottom: auto;
