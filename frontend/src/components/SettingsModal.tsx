@@ -6,6 +6,7 @@ type AppSettings = {
   isLaughCounter: boolean;
   cardTypes: string[];
   teamCardTypes: string[];
+  triumphCards: string[];
 };
 
 type SettingsModalProps = {
@@ -33,18 +34,43 @@ export default function SettingsModal({ open, settings, onClose, onSave }: Setti
     return null;
   }
 
-  const toggleCardType = (cardType: string) => {
-    if (REQUIRED_CARD_TYPES.includes(cardType)) {
+  const removeCardType = (index: number) => {
+    const cardType = draft.cardTypes[index];
+    if (REQUIRED_CARD_TYPES.includes(cardType) && draft.cardTypes.filter((ct) => ct === cardType).length === 1) {
       return;
     }
 
     setDraft((prev) => {
-      const hasCardType = prev.cardTypes.includes(cardType);
+      const nextCardTypes = prev.cardTypes.filter((_, i) => i !== index);
       return {
         ...prev,
-        cardTypes: hasCardType
-          ? prev.cardTypes.filter((item) => item !== cardType)
-          : [...prev.cardTypes, cardType],
+        cardTypes: nextCardTypes,
+      };
+    });
+  };
+
+  const moveCardTypeUp = (index: number) => {
+    if (index <= 0) return;
+
+    setDraft((prev) => {
+      const nextCardTypes = [...prev.cardTypes];
+      [nextCardTypes[index - 1], nextCardTypes[index]] = [nextCardTypes[index], nextCardTypes[index - 1]];
+      return {
+        ...prev,
+        cardTypes: nextCardTypes,
+      };
+    });
+  };
+
+  const moveCardTypeDown = (index: number) => {
+    if (index >= draft.cardTypes.length - 1) return;
+
+    setDraft((prev) => {
+      const nextCardTypes = [...prev.cardTypes];
+      [nextCardTypes[index], nextCardTypes[index + 1]] = [nextCardTypes[index + 1], nextCardTypes[index]];
+      return {
+        ...prev,
+        cardTypes: nextCardTypes,
       };
     });
   };
@@ -56,10 +82,6 @@ export default function SettingsModal({ open, settings, onClose, onSave }: Setti
     }
 
     setDraft((prev) => {
-      if (prev.cardTypes.includes(normalized)) {
-        return prev;
-      }
-
       return {
         ...prev,
         cardTypes: [...prev.cardTypes, normalized],
@@ -104,17 +126,19 @@ export default function SettingsModal({ open, settings, onClose, onSave }: Setti
   const save = () => {
     const contestants = Math.max(2, draft.contestants);
     const normalizedContestants = draft.dual && contestants % 2 !== 0 ? contestants + 1 : contestants;
-    const normalizedCardTypes = [...new Set([...REQUIRED_CARD_TYPES, ...draft.cardTypes.map((type) => type.toLowerCase())])];
+    const normalizedCardTypes = draft.cardTypes.map((type) => type.toLowerCase());
+    const hasRequired = REQUIRED_CARD_TYPES.every((req) => normalizedCardTypes.includes(req));
+    const finalCardTypes = hasRequired ? normalizedCardTypes : [...REQUIRED_CARD_TYPES, ...normalizedCardTypes];
 
     onSave({
       ...draft,
       contestants: normalizedContestants,
-      cardTypes: normalizedCardTypes,
+      cardTypes: finalCardTypes,
       teamCardTypes: [...new Set(draft.teamCardTypes.map((type) => type.toLowerCase()))],
+      triumphCards: draft.triumphCards.map((type) => type.toLowerCase()),
     });
   };
 
-  const sortedCardTypes = [...new Set([...REQUIRED_CARD_TYPES, ...draft.cardTypes])];
   const quickAddChoices = PRESET_CARD_TYPES.filter((cardType) => !draft.cardTypes.includes(cardType));
   const sortedTeamCardTypes = [...new Set(draft.teamCardTypes)];
 
@@ -154,17 +178,59 @@ export default function SettingsModal({ open, settings, onClose, onSave }: Setti
 
         <div className="settings-card-types">
           <p>Enabled card types</p>
-          {sortedCardTypes.map((cardType) => (
-            <label key={cardType} className="settings-checkbox-row">
-              <input
-                type="checkbox"
-                checked={true}
-                disabled={REQUIRED_CARD_TYPES.includes(cardType)}
-                onChange={() => toggleCardType(cardType)}
-              />
-              <span>{cardType}{REQUIRED_CARD_TYPES.includes(cardType) ? " (required)" : ""}</span>
-            </label>
-          ))}
+          {draft.cardTypes.map((cardType, index) => {
+            const isRequired = REQUIRED_CARD_TYPES.includes(cardType) && draft.cardTypes.filter((ct) => ct === cardType).length === 1;
+            const isTriumph = draft.triumphCards.includes(cardType);
+            return (
+              <div key={index} className="settings-card-item">
+                <span>{cardType}{isRequired ? " (required)" : ""}</span>
+                <label className="settings-triumph-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={isTriumph}
+                    onChange={() =>
+                      setDraft((prev) => {
+                        const hasTriumph = prev.triumphCards.includes(cardType);
+                        return {
+                          ...prev,
+                          triumphCards: hasTriumph
+                            ? prev.triumphCards.filter((c) => c !== cardType)
+                            : [...prev.triumphCards, cardType],
+                        };
+                      })
+                    }
+                  />
+                  <span>Triumph</span>
+                </label>
+                <div className="settings-card-buttons">
+                  <button
+                    className="settings-move-button"
+                    onClick={() => moveCardTypeUp(index)}
+                    disabled={index === 0}
+                    title="Move up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="settings-move-button"
+                    onClick={() => moveCardTypeDown(index)}
+                    disabled={index === draft.cardTypes.length - 1}
+                    title="Move down"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    className="settings-remove-button"
+                    onClick={() => removeCardType(index)}
+                    disabled={isRequired}
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            );
+          })}
 
           <div className="settings-add-card-row">
             <input

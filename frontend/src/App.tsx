@@ -12,6 +12,7 @@ type AppSettings = {
   isLaughCounter: boolean;
   cardTypes: string[];
   teamCardTypes: string[];
+  triumphCards: string[];
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   isLaughCounter: false,
   cardTypes: ["yellow", "red", "black", "white"],
   teamCardTypes: ["orange1", "orange2"],
+  triumphCards: [],
 };
 
 type PairState = {
@@ -198,10 +200,14 @@ export default function App() {
     Socket.emit("card:press-log:get");
   };
 
+  const clearPressLog = () => {
+    setPressLog([]);
+    Socket.emit("card:press-log:clear");
+  };
+
   const saveSettings = async (nextSettings: AppSettings) => {
-    const normalizedTypes = [...new Set(["yellow", "red", ...nextSettings.cardTypes.map((type) => type.toLowerCase())])];
     const normalizedTeamTypes = [...new Set(nextSettings.teamCardTypes.map((type) => type.toLowerCase()))];
-    const normalizedSettings = { ...nextSettings, cardTypes: normalizedTypes, teamCardTypes: normalizedTeamTypes };
+    const normalizedSettings = { ...nextSettings, teamCardTypes: normalizedTeamTypes };
 
     setSettingsOpen(false);
     Socket.emit("settings:update", normalizedSettings);
@@ -231,10 +237,20 @@ export default function App() {
 
   const renderPressLogDescription = (entry: CardPressLogEntry) => {
     const labelPrefix = entry.label ? `${entry.label} - ` : "";
-    if (entry.lane === "pair") {
-      return `${entry.timeOfDay} - ${entry.player}: ${entry.cardType.toUpperCase()} team card`;
+    
+    // Extract just the color from the card type (remove @x suffix)
+    const cardColor = entry.cardType.split("@")[0].toLowerCase();
+    let cardLabel = cardColor;
+    
+    // Special handling for secondary red card
+    if (entry.cardType === "red@secondary") {
+      cardLabel = "red (2nd)";
     }
-    return `${entry.timeOfDay} - ${labelPrefix}${entry.player}: ${entry.cardType.toUpperCase()} card`;
+    
+    if (entry.lane === "pair") {
+      return `${entry.timeOfDay} - ${entry.player}: ${cardLabel.toUpperCase()} team card`;
+    }
+    return `${entry.timeOfDay} - ${labelPrefix}${entry.player}: ${cardLabel.toUpperCase()} card`;
   };
 
   return (
@@ -257,7 +273,14 @@ export default function App() {
               <div className="press-log-modal" onClick={(event) => event.stopPropagation()}>
                 <div className="press-log-header">
                   <h2>Card Press Log</h2>
-                  <button onClick={() => setShowPressLog(false)}>Close</button>
+                  <div>
+                    {pressLog.length > 0 && (
+                      <button onClick={clearPressLog} className="clear-button">
+                        Clear
+                      </button>
+                    )}
+                    <button onClick={() => setShowPressLog(false)}>Close</button>
+                  </div>
                 </div>
                 {pressLog.length === 0 ? (
                   <p className="press-log-empty">No card presses registered yet.</p>
@@ -304,6 +327,7 @@ export default function App() {
                           view={isView}
                           laughtercount={settings.isLaughCounter}
                           enabledCardTypes={settings.cardTypes}
+                          triumphCards={settings.triumphCards}
                         />
                         <PictureFrame
                           index={index}
@@ -312,6 +336,7 @@ export default function App() {
                           view={isView}
                           laughtercount={settings.isLaughCounter}
                           enabledCardTypes={settings.cardTypes}
+                          triumphCards={settings.triumphCards}
                         />
                       </div>
 
@@ -351,6 +376,7 @@ export default function App() {
                     index={index}
                     laughtercount={settings.isLaughCounter}
                     enabledCardTypes={settings.cardTypes}
+                    triumphCards={settings.triumphCards}
                   />
                 ))}
           </div>

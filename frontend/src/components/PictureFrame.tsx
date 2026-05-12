@@ -10,6 +10,7 @@ type PictureFrameProps = {
   view: boolean;
   laughtercount: boolean;
   enabledCardTypes: string[];
+  triumphCards: string[];
 };
 
 type FrameState = {
@@ -66,6 +67,7 @@ export default function PictureFrame({
   view,
   laughtercount,
   enabledCardTypes,
+  triumphCards,
 }: PictureFrameProps) {
   const [state, setState] = useState<FrameState>({ ...EMPTY_STATE, picture });
   const [pairRed, setPairRed] = useState(false);
@@ -73,7 +75,7 @@ export default function PictureFrame({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const enabledTypes = useMemo(
-    () => [...new Set(["yellow", "red", ...enabledCardTypes.map(normalizeCardType)])],
+    () => enabledCardTypes.map(normalizeCardType),
     [enabledCardTypes],
   );
 
@@ -81,11 +83,12 @@ export default function PictureFrame({
     Socket.emit("card:update", { index, lane, patch });
   };
 
-  const setCardToggle = (cardType: string) => {
+  const setCardToggle = (cardType: string, cardIndex: number) => {
     const type = normalizeCardType(cardType);
+    const cardKey = `${type}@${cardIndex}`;
     setState((prev) => {
-      const nextValue = !Boolean(prev.cards[type]);
-      const nextCards = { ...prev.cards, [type]: nextValue };
+      const nextValue = !Boolean(prev.cards[cardKey]);
+      const nextCards = { ...prev.cards, [cardKey]: nextValue };
       emitPatch({ cards: nextCards });
       return { ...prev, cards: nextCards };
     });
@@ -204,8 +207,10 @@ export default function PictureFrame({
       hydrateFromLaneData(laneData);
 
       if (lane !== "single") {
-        const leftRed = Boolean(data.card.left?.cards?.red ?? data.card.left?.isRedLeft);
-        const rightRed = Boolean(data.card.right?.cards?.red ?? data.card.right?.isRedRight);
+        const leftRedCards = data.card.left?.cards || {};
+        const rightRedCards = data.card.right?.cards || {};
+        const leftRed = Object.keys(leftRedCards).some(key => key.startsWith("red@") && leftRedCards[key]) || Boolean(data.card.left?.isRedLeft);
+        const rightRed = Object.keys(rightRedCards).some(key => key.startsWith("red@") && rightRedCards[key]) || Boolean(data.card.right?.isRedRight);
         setPairRed(leftRed || rightRed);
       }
     };
@@ -252,7 +257,22 @@ export default function PictureFrame({
     };
   }, [index, lane]);
 
-  const effectiveRed = lane === "single" ? Boolean(state.cards.red) : pairRed;
+  const hasActiveTriumphCard = triumphCards.some((cardType) => {
+    const normalizedType = normalizeCardType(cardType);
+    return enabledCardTypes.some((enabled, idx) => {
+      const enabledNormalized = normalizeCardType(enabled);
+      const cardKey = `${enabledNormalized}@${idx}`;
+      return enabledNormalized === normalizedType && state.cards[cardKey];
+    });
+  });
+
+  const primaryRedCount = Object.keys(state.cards).filter(key => key.startsWith("red@") && key !== "red@secondary" && state.cards[key]).length;
+  const secondaryRedActive = state.cards["red@secondary"];
+  const totalRedCount = primaryRedCount + (secondaryRedActive ? 1 : 0);
+  
+  const effectiveRed = lane === "single" 
+    ? totalRedCount >= 2 ? true : (hasActiveTriumphCard ? false : primaryRedCount > 0)
+    : pairRed;
   const isPlaceholderPicture = !state.picture || state.picture === "/profileplaceholder.jpg";
   const laughCounterClassName =
     lane === "single"
@@ -269,23 +289,34 @@ export default function PictureFrame({
         onDragOver={(event) => event.preventDefault()}
       >
         <div className="cards">
-          {enabledTypes.map((cardType) => {
-            if (!state.cards[cardType]) {
+          {enabledTypes.map((cardType, idx) => {
+            const cardKey = `${normalizeCardType(cardType)}@${idx}`;
+            if (!state.cards[cardKey]) {
               return null;
             }
 
-            const backgroundColor = isValidCssColor(cardType) ? cardType : "#888";
+            const normalizedType = normalizeCardType(cardType);
+            const backgroundColor = isValidCssColor(normalizedType) ? normalizedType : "#888";
             return (
               <div
-                key={cardType}
+                key={cardKey}
                 className="dynamic-card"
-                style={{ backgroundColor, color: getTextColorForBackground(cardType) }}
-                title={cardType}
+                style={{ backgroundColor, color: getTextColorForBackground(normalizedType) }}
+                title={normalizedType}
               >
-                {cardType.slice(0, 1).toUpperCase()}
+                {normalizedType.slice(0, 1).toUpperCase()}
               </div>
             );
           })}
+          {secondaryRedActive ? (
+            <div
+              className="dynamic-card"
+              style={{ backgroundColor: "red", color: getTextColorForBackground("red") }}
+              title="red (2nd)"
+            >
+              R
+            </div>
+          ) : null}
         </div>
 
         {laughtercount ? <div className={laughCounterClassName}>{state.laughCounter}</div> : null}
@@ -332,15 +363,35 @@ export default function PictureFrame({
 
       {view ? null : (
         <div className="picture-frame-buttons">
-          {enabledTypes.map((cardType) => (
+          {enabledTypes.map((cardType, idx) => {
+            const normalizedType = normalizeCardType(cardType);
+            const cardKey = `${normalizedType}@${idx}`;
+            return (
+              <button
+                key={cardKey}
+                className={state.cards[cardKey] ? "active" : ""}
+                onClick={() => setCardToggle(cardType, idx)}
+                title={`${normalizedType}: ${state.cards[cardKey] ? "on" : "off"}`}
+              >
+                {normalizedType}
+              </button>
+            );
+          })}
+          {hasActiveTriumphCard && primaryRedCount >= 1 && (primaryRedCount === 1 || secondaryRedActive) ? (
             <button
-              key={cardType}
-              className={state.cards[cardType] ? "active" : ""}
-              onClick={() => setCardToggle(cardType)}
+              className={`second-red-button${secondaryRedActive ? " active" : ""}`}
+              onClick={() => {
+                setState((prev) => {
+                  const nextCards = { ...prev.cards, "red@secondary": !prev.cards["red@secondary"] };
+                  emitPatch({ cards: nextCards });
+                  return { ...prev, cards: nextCards };
+                });
+              }}
+              title={secondaryRedActive ? "Remove second red card" : "Add second red card"}
             >
-              {cardType}
+              Red (2nd)
             </button>
-          ))}
+          ) : null}
           {laughtercount ? (
             <div className="laugh-controls">
               <button className="laugh-button" onClick={() => updateLaughCounter(-1)}>

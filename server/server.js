@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS = {
   isLaughCounter: false,
   cardTypes: ["yellow", "red", "black", "white"],
   teamCardTypes: ["orange1", "orange2"],
+  triumphCards: [],
 };
 
 app.use(cors());
@@ -72,15 +73,15 @@ function sanitizeSettingsPatch(patch) {
       .map((type) => type.trim().toLowerCase())
       .filter((type) => /^[a-z][a-z0-9-]{1,23}$/.test(type));
 
-    const unique = [...new Set(normalized)];
-    if (!unique.includes("yellow")) {
-      unique.unshift("yellow");
+    let cardTypes = [...normalized];
+    if (!cardTypes.includes("yellow")) {
+      cardTypes.unshift("yellow");
     }
-    if (!unique.includes("red")) {
-      unique.push("red");
+    if (!cardTypes.includes("red")) {
+      cardTypes.push("red");
     }
 
-    sanitized.cardTypes = unique;
+    sanitized.cardTypes = cardTypes;
   }
 
   if (Array.isArray(patch.teamCardTypes)) {
@@ -90,6 +91,15 @@ function sanitizeSettingsPatch(patch) {
       .filter((type) => /^[a-z][a-z0-9-]{1,23}$/.test(type));
 
     sanitized.teamCardTypes = [...new Set(normalized)];
+  }
+
+  if (Array.isArray(patch.triumphCards)) {
+    const normalized = patch.triumphCards
+      .filter((type) => typeof type === "string")
+      .map((type) => type.trim().toLowerCase())
+      .filter((type) => /^[a-z][a-z0-9-]{1,23}$/.test(type));
+
+    sanitized.triumphCards = [...new Set(normalized)];
   }
 
   return sanitized;
@@ -167,6 +177,9 @@ function normalizeDatabase(raw) {
     teamCardTypes: Array.isArray(rawObject.teamCardTypes)
       ? sanitizeSettingsPatch({ teamCardTypes: rawObject.teamCardTypes }).teamCardTypes || DEFAULT_SETTINGS.teamCardTypes
       : DEFAULT_SETTINGS.teamCardTypes,
+    triumphCards: Array.isArray(rawObject.triumphCards)
+      ? sanitizeSettingsPatch({ triumphCards: rawObject.triumphCards }).triumphCards || DEFAULT_SETTINGS.triumphCards
+      : DEFAULT_SETTINGS.triumphCards,
   };
 
   if (settings.dual && settings.contestants % 2 !== 0) {
