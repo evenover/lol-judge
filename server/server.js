@@ -504,6 +504,12 @@ io.on("connection", (socket) => {
   socket.on("card:press-log:get", () => {
     socket.emit("card:press-log", Array.isArray(database.pressLog) ? database.pressLog : []);
   });
+
+  socket.on("card:press-log:clear", () => {
+    database.pressLog = [];
+    saveDatabase();
+    io.emit("card:press-log", []);
+  });
 });
 
 server.listen(port, () => {
